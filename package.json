@@ -1,0 +1,33 @@
+{
+  "name": "smartcart-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "pnpm --filter shared build",
+    "build": "pnpm --recursive build",
+    "clean": "rm -rf node_modules app/*/node_modules shared/node_modules app/*/dist shared/dist",
+    "lint": "pnpm --recursive lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md,yaml}\"",
+    "typecheck": "tsc --build app/frontend app/backend shared --verbose",
+    "dev:backend": "pnpm --filter app/backend dev",
+    "dev:frontend": "pnpm --filter app/frontend dev",
+    "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "start:backend": "pnpm --filter app/backend start",
+    "start:frontend": "pnpm --filter app/frontend start",
+    "start": "concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
+    "prettier": "3.6.2",
+    "typescript": "^5.8.3"
+  }
+}

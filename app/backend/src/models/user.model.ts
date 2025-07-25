@@ -1,6 +1,13 @@
 import mongoose from 'mongoose';
+import { IUserFull as IUser } from '@smartcartai/shared/src/interface/user';
 import jwt, {Secret, SignOptions} from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+
+interface IUserMethods {
+  comparePassword(newPassword: string): Promise<boolean>;
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
+}
 
 const phoneSchema = new mongoose.Schema(
   {
@@ -22,7 +29,7 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const UserSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema<IUser & IUserMethods>(
   {
     fullName: {
       type: String,

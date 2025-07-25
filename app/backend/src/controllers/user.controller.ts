@@ -3,10 +3,11 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
+import mongoose from "mongoose";
 
 // Generate secret tokens for user authentication
 
-const generateSecretTokens = async (userId: string) => {
+const generateSecretTokens = async (userId: mongoose.Types.ObjectId) => {
    const user = await User.findById(userId);
    if (!user) {
       throw new ApiError(404, "User not found");
@@ -79,3 +80,5 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
    const { accessToken, refreshToken } = await generateSecretTokens(user._id);
 });
+
+export { registerUser, loginUser };

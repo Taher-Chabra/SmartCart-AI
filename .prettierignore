@@ -1,10 +1,10 @@
 /node_modules
 /.vscode
 
-/frontend/dist
-/backend/dist
-/frontend/build
-/backend/build
+/app/frontend/dist
+/app/backend/dist
+/app/frontend/build
+/app/backend/build
 
 *.env
 .env

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@smartcartai/shared": ["./shared/src"],
+      "@smartcartai/shared/*": ["./shared/src/*"]
+    }
+  },
+  "references": [
+    { "path": "./app/frontend" },
+    { "path": "./app/backend" },
+    { "path": "./shared" }
+  ],
+  "exclude": ["node_modules", "dist", "build", ".next", "app/*/dist", "app/*/build", "shared/dist"],
+  "include": []
+}
