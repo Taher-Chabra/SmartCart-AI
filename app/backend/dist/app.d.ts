@@ -1,3 +1,3 @@
-import express from 'express';
-declare const app: express.Application;
+import { Express } from 'express';
+declare const app: Express;
 export { app };

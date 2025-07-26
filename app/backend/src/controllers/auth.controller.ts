@@ -1,25 +1,26 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import { Request, Response } from "express";
-import { User } from "../models/user.model";
+import { User, UserDocument } from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
-import mongoose from "mongoose";
+import { authResponseData } from "../utils/auth.utils";
 
-// Generate secret tokens for user authentication
+const authSuccessCallback = asyncHandler(async (req: Request, res: Response) => {
+   // This callback is intended to be used after authentication strategies - LocalStrategy, GoogleStrategy have validated the user's credentials and attached the user object to `req.user`.
+   const user = req.user as UserDocument; // Passport populates req.user
 
-const generateSecretTokens = async (userId: mongoose.Types.ObjectId) => {
-   const user = await User.findById(userId);
    if (!user) {
-      throw new ApiError(404, "User not found");
+      throw new ApiError(401, "Authentication failed. User not found!");
    }
-   const accessToken = user.generateAccessToken();
-   const refreshToken = user.generateRefreshToken();
 
-   user.refreshToken = refreshToken;
-   await user.save({ validateBeforeSave: false });
+   const {accessToken, refreshToken, loggedInUser, cookieOptions} = await authResponseData(user);
 
-   return { accessToken, refreshToken };
-}
+   return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json(new ApiResponse(200, { user: loggedInUser }, "User logged in successfully"));
+});
 
 // Register a new User
 
@@ -59,26 +60,8 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
 
 // Login User
 
-const loginUser = asyncHandler(async (req: Request, res: Response) => {
-   const { email, password } = req.body;
+const localUserLogin = authSuccessCallback
 
-   if (!email || !password) {
-      throw new ApiError(400, "Email and password are required!");
-   }
+const googleUserLogin = authSuccessCallback
 
-   const user = await User.findOne({email})
-
-   if (!user) {
-      throw new ApiError(401, "Invalid email or password!");
-   }
-
-   const checkPassword = await user.comparePassword(password);
-
-   if (!checkPassword) {
-      throw new ApiError(401, "Incorrect password!");
-   }
-
-   const { accessToken, refreshToken } = await generateSecretTokens(user._id);
-});
-
-export { registerUser, loginUser };
+export { registerUser, localUserLogin, googleUserLogin };

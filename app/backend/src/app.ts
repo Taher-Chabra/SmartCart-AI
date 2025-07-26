@@ -1,8 +1,9 @@
-import express from 'express';
+import express, {Express} from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { configurePassport } from './config/passport';
 
-const app: express.Application = express();
+const app: Express = express();
 
 app.use(cors({
    origin: process.env.CORS_ORIGIN,
@@ -14,5 +15,14 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static('public'));
 
 app.use(cookieParser());
+
+configurePassport(app);
+
+// Import routes
+import authRoutes from './routes/auth.routes';
+
+
+// Use routes
+app.use('/api/auth', authRoutes);
 
 export { app };

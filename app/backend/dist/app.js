@@ -7,6 +7,7 @@ exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const passport_1 = require("./config/passport");
 const app = (0, express_1.default)();
 exports.app = app;
 app.use((0, cors_1.default)({
@@ -17,3 +18,8 @@ app.use(express_1.default.json({ limit: '1mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express_1.default.static('public'));
 app.use((0, cookie_parser_1.default)());
+(0, passport_1.configurePassport)(app);
+// Import routes
+const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
+// Use routes
+app.use('/api/auth', auth_routes_1.default);

@@ -7,15 +7,20 @@ const ApiError_1 = require("../utils/ApiError");
 const ApiResponse_1 = require("../utils/ApiResponse");
 // Generate secret tokens for user authentication
 const generateSecretTokens = async (userId) => {
-    const user = await user_model_1.User.findById(userId);
-    if (!user) {
-        throw new ApiError_1.ApiError(404, "User not found");
+    try {
+        const user = await user_model_1.User.findById(userId);
+        if (!user) {
+            throw new ApiError_1.ApiError(404, "User not found");
+        }
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+        return { accessToken, refreshToken };
     }
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
-    return { accessToken, refreshToken };
+    catch (error) {
+        throw new ApiError_1.ApiError(500, "Failed to generate tokens");
+    }
 };
 // Register a new User
 const registerUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
@@ -60,5 +65,17 @@ const loginUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         throw new ApiError_1.ApiError(401, "Incorrect password!");
     }
     const { accessToken, refreshToken } = await generateSecretTokens(user._id);
+    const loggedInUser = await user_model_1.User
+        .findById(user._id)
+        .select("-password -refreshToken");
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse_1.ApiResponse(200, { user: loggedInUser }, "User logged in successfully"));
 });
 exports.loginUser = loginUser;
