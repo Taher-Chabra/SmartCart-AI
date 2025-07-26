@@ -2,7 +2,6 @@
    fullName?: string;
    username?: string;
    email?: string;
-   password?: string;
    phone?: {
       countryCode?: string;
       number?: string;
@@ -35,5 +34,16 @@
 
 export interface IUserFull extends IUserPartial {
    password: string;
+   google?: {
+      id: string;
+   };
+   authType: 'local' | 'google';
    refreshToken: string;
+}
+
+export interface IUserJwtPayload {
+   _id: string;
+   username: string;
+   email: string;
+   role: 'customer' | 'admin' | 'seller';
 }

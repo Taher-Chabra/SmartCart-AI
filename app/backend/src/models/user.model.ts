@@ -1,12 +1,16 @@
-import mongoose from 'mongoose';
-import { IUserFull as IUser } from '@smartcartai/shared/src/interface/user';
-import jwt, {Secret, SignOptions} from 'jsonwebtoken';
+import mongoose, { Document } from 'mongoose';
+import { IUserFull as IUser, IUserJwtPayload } from '@smartcartai/shared/interface/user';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 interface IUserMethods {
   comparePassword(newPassword: string): Promise<boolean>;
   generateAccessToken(): string;
   generateRefreshToken(): string;
+}
+
+export interface UserDocument extends IUser, Document, IUserMethods {
+  _id: mongoose.Types.ObjectId;
 }
 
 const phoneSchema = new mongoose.Schema(
@@ -29,7 +33,7 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const UserSchema = new mongoose.Schema<IUser & IUserMethods>(
+const UserSchema = new mongoose.Schema<UserDocument>(
   {
     fullName: {
       type: String,
@@ -54,8 +58,24 @@ const UserSchema = new mongoose.Schema<IUser & IUserMethods>(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: false,
       minlength: [8, 'Password must be at least 8 characters long'],
+    },
+    google: { 
+      id: {
+        type: String,
+        unique: true,
+        sparse: true,
+        required: false,
+        select: false
+      }
+    },
+    authType: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+      required: true,
+      select: false
     },
     phone: phoneSchema,
     address: addressSchema,
@@ -124,10 +144,12 @@ UserSchema.pre('save', async function (next) {
   const user = this;
 
   try {
-    if (!user.isModified('password')) return next();
+    if (!user.isModified('password') && !this.password && this.authType !== 'local') {
+      return next();
+    }
 
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
+    user.password = await bcrypt.hash(user.password, salt)
 
     next();
   } catch (error) {
@@ -139,11 +161,14 @@ UserSchema.pre('save', async function (next) {
 UserSchema.methods.comparePassword = async function (
   newPassowrd: string
 ): Promise<boolean> {
+  if (!this.password) {
+    throw new Error('Password not set for this user');
+  }
   return await bcrypt.compare(newPassowrd, this.password);
 };
 
 UserSchema.methods.generateAccessToken = function (): string {
-  const payload = {
+  const payload: IUserJwtPayload = {
     _id: this._id,
     username: this.username,
     email: this.email,

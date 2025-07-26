@@ -43,8 +43,24 @@ const UserSchema = new mongoose_1.default.Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
+        required: false,
         minlength: [8, 'Password must be at least 8 characters long'],
+    },
+    google: {
+        id: {
+            type: String,
+            unique: true,
+            sparse: true,
+            required: false,
+            select: false
+        }
+    },
+    authType: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local',
+        required: true,
+        select: false
     },
     phone: phoneSchema,
     address: addressSchema,
@@ -109,8 +125,9 @@ const UserSchema = new mongoose_1.default.Schema({
 UserSchema.pre('save', async function (next) {
     const user = this;
     try {
-        if (!user.isModified('password'))
+        if (!user.isModified('password') && !this.password && this.authType !== 'local') {
             return next();
+        }
         const salt = await bcrypt_1.default.genSalt(10);
         user.password = await bcrypt_1.default.hash(user.password, salt);
         next();
@@ -121,6 +138,9 @@ UserSchema.pre('save', async function (next) {
     }
 });
 UserSchema.methods.comparePassword = async function (newPassowrd) {
+    if (!this.password) {
+        throw new Error('Password not set for this user');
+    }
     return await bcrypt_1.default.compare(newPassowrd, this.password);
 };
 UserSchema.methods.generateAccessToken = function () {
