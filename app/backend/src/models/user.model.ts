@@ -33,7 +33,7 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const UserSchema = new mongoose.Schema<UserDocument>(
+const userSchema = new mongoose.Schema<UserDocument>(
   {
     fullName: {
       type: String,
@@ -140,16 +140,13 @@ const UserSchema = new mongoose.Schema<UserDocument>(
   { timestamps: true }
 );
 
-UserSchema.pre('save', async function (next) {
-  const user = this;
-
+userSchema.pre('save', async function (next) {
   try {
-    if (!user.isModified('password') && !this.password && this.authType !== 'local') {
+    if (!this.isModified('password')) {
       return next();
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt)
+    this.password = await bcrypt.hash(this.password, 10)
 
     next();
   } catch (error) {
@@ -158,16 +155,14 @@ UserSchema.pre('save', async function (next) {
   }
 });
 
-UserSchema.methods.comparePassword = async function (
-  newPassowrd: string
+userSchema.methods.comparePassword = async function(
+  enteredPassword: string
 ): Promise<boolean> {
-  if (!this.password) {
-    throw new Error('Password not set for this user');
-  }
-  return await bcrypt.compare(newPassowrd, this.password);
-};
+  return await bcrypt.compare(enteredPassword, this.password);
+}
 
-UserSchema.methods.generateAccessToken = function (): string {
+
+userSchema.methods.generateAccessToken = function (): string {
   const payload: IUserJwtPayload = {
     _id: this._id,
     username: this.username,
@@ -188,7 +183,7 @@ UserSchema.methods.generateAccessToken = function (): string {
   );
 };
 
-UserSchema.methods.generateRefreshToken = function (): string {
+userSchema.methods.generateRefreshToken = function (): string {
   const payload = {
     _id: this._id,
   };
@@ -206,4 +201,4 @@ UserSchema.methods.generateRefreshToken = function (): string {
   );
 };
 
-export const User = mongoose.model('User', UserSchema);
+export const User = mongoose.model('User', userSchema);

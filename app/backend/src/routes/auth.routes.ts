@@ -10,7 +10,7 @@ router.route('/register')
 router.route('/login').post(
    passport.authenticate(
       'local', 
-      { session: false, failureRedirect: '/login-failure' }
+      { session: false }
    ),
    localUserLogin
 );
@@ -25,7 +25,7 @@ router.route('/login-google').get(
 router.route('/google/callback').get(
    passport.authenticate(
       'google', 
-      { session: false, failureRedirect: '/login-failure' }
+      { session: false }
    ),
    googleUserLogin
 );
