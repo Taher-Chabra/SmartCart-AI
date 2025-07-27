@@ -47,15 +47,13 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       role
    });
 
-   const createdUser = await User.findById(newUser._id).select("-password -refreshToken");
-
-   if (!createdUser) {
-      throw new ApiError(500, "Failed to create user!");
-   }
+   const { accessToken, refreshToken, loggedInUser, cookieOptions } = await authResponseData(newUser);
 
    return res
       .status(201)
-      .json(new ApiResponse(201, createdUser, "User registered successfully"))
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json(new ApiResponse(201, loggedInUser, "User registered successfully"))
 });
 
 // Login User

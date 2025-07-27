@@ -1,1 +1,1 @@
-export const DB_NAME = "SmartCart-AI";
+export const DB_NAME = "smartcartAI";
