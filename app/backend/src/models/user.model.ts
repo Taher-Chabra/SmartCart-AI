@@ -1,5 +1,5 @@
 import mongoose, { Document } from 'mongoose';
-import { IUserBase } from '@smartcartai/shared/src/interface/user';
+import { IUserBase } from '@smartcartai/shared/src/interface/user'
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -23,6 +23,8 @@ interface IUser extends IUserBase {
   };
   authType: 'local' | 'google';
   refreshToken?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface IUserMethods {
@@ -31,7 +33,9 @@ interface IUserMethods {
   generateRefreshToken(): string;
 }
 
-export interface UserDocument extends IUser, IUserMethods, Document {}
+export interface UserDocument extends IUser, IUserMethods, Document {
+  _id: mongoose.Types.ObjectId;
+}
 
 const phoneSchema = new mongoose.Schema(
   {
@@ -113,7 +117,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
   { timestamps: true }
 );
 
-userSchema.pre('save', async function (this: UserDocument, next) {
+userSchema.pre('save', async function (next) {
   try {
     if (!this.isModified('password')) {
       return next();

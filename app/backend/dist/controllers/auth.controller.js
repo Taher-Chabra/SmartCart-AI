@@ -38,13 +38,12 @@ const registerUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         password,
         role
     });
-    const createdUser = await user_model_1.User.findById(newUser._id).select("-password -refreshToken");
-    if (!createdUser) {
-        throw new ApiError_1.ApiError(500, "Failed to create user!");
-    }
+    const { accessToken, refreshToken, loggedInUser, cookieOptions } = await (0, auth_utils_1.authResponseData)(newUser);
     return res
         .status(201)
-        .json(new ApiResponse_1.ApiResponse(201, createdUser, "User registered successfully"));
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions)
+        .json(new ApiResponse_1.ApiResponse(201, loggedInUser, "User registered successfully"));
 });
 exports.registerUser = registerUser;
 // Login User

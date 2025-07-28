@@ -12,6 +12,14 @@ build/
 
 # === TypeScript ===
 *.tsbuildinfo
+shared/src/**/*.js
+shared/src/**/*.d.ts
+app/backend/**/*.js
+app/backend/**/*.d.ts
+
+# === Build Output ===
+dist/
+**/dist/
 
 # === Vercel / Deployment ===
 .vercel/

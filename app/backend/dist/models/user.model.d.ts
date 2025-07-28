@@ -1,11 +1,30 @@
 import mongoose, { Document } from 'mongoose';
-import { IUserFull as IUser } from '@smartcartai/shared/interface/user';
+import { IUserBase } from '@smartcartai/shared/src/interface/user';
+interface IUser extends IUserBase {
+    fullName: string;
+    password: string;
+    phone: {
+        countryCode?: string;
+        number?: string;
+    };
+    avatar: string;
+    isActive: boolean;
+    isEmailVerified: boolean;
+    isPhoneVerified: boolean;
+    google: {
+        id: string;
+    };
+    authType: 'local' | 'google';
+    refreshToken?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
 interface IUserMethods {
     comparePassword(newPassword: string): Promise<boolean>;
     generateAccessToken(): string;
     generateRefreshToken(): string;
 }
-export interface UserDocument extends IUser, Document, IUserMethods {
+export interface UserDocument extends IUser, IUserMethods, Document {
     _id: mongoose.Types.ObjectId;
 }
 export declare const User: mongoose.Model<UserDocument, {}, {}, {}, mongoose.Document<unknown, {}, UserDocument, {}> & UserDocument & Required<{

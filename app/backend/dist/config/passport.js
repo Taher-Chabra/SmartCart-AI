@@ -10,7 +10,6 @@ const passport_google_oauth20_1 = require("passport-google-oauth20");
 const user_model_1 = require("../models/user.model");
 passport_1.default.use(new passport_local_1.Strategy({
     usernameField: 'email',
-    passwordField: 'password'
 }, async (email, password, done) => {
     try {
         const user = await user_model_1.User.findOne({ email });
@@ -19,7 +18,7 @@ passport_1.default.use(new passport_local_1.Strategy({
         }
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return done(null, false, { message: 'Incorrect email or password.' });
+            return done(null, false, { message: 'Incorrect password.' });
         }
         return done(null, user);
     }

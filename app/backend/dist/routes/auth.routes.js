@@ -9,7 +9,7 @@ const auth_controller_1 = require("../controllers/auth.controller");
 const router = express_1.default.Router();
 router.route('/register')
     .post(auth_controller_1.registerUser);
-router.route('/login').post(passport_1.default.authenticate('local', { session: false, failureRedirect: '/login-failure' }), auth_controller_1.localUserLogin);
+router.route('/login').post(passport_1.default.authenticate('local', { session: false }), auth_controller_1.localUserLogin);
 router.route('/login-google').get(passport_1.default.authenticate('google', { scope: ['profile', 'email'], session: false }));
-router.route('/google/callback').get(passport_1.default.authenticate('google', { session: false, failureRedirect: '/login-failure' }), auth_controller_1.googleUserLogin);
+router.route('/google/callback').get(passport_1.default.authenticate('google', { session: false }), auth_controller_1.googleUserLogin);
 exports.default = router;

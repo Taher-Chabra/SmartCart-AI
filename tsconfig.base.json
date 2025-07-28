@@ -8,8 +8,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@smartcartai/shared": ["./shared/dist"],
-      "@smartcartai/shared/*": ["./shared/dist/*"]
+      "@smartcartai/shared": ["./shared/src"],
+      "@smartcartai/shared/*": ["./shared/src/*"]
     }
   },
   "references": [

@@ -11,15 +11,7 @@ const phoneSchema = new mongoose_1.default.Schema({
     countryCode: String,
     number: { type: String, trim: true },
 }, { _id: false });
-const addressSchema = new mongoose_1.default.Schema({
-    line1: { type: String, trim: true },
-    city: { type: String, trim: true },
-    state: String,
-    country: String,
-    zip: String,
-    landmark: String,
-}, { _id: false });
-const UserSchema = new mongoose_1.default.Schema({
+const userSchema = new mongoose_1.default.Schema({
     fullName: {
         type: String,
         required: true,
@@ -52,18 +44,21 @@ const UserSchema = new mongoose_1.default.Schema({
             unique: true,
             sparse: true,
             required: false,
-            select: false
-        }
+            select: false,
+        },
+    },
+    isActive: {
+        type: Boolean,
+        default: true,
     },
     authType: {
         type: String,
         enum: ['local', 'google'],
         default: 'local',
         required: true,
-        select: false
+        select: false,
     },
     phone: phoneSchema,
-    address: addressSchema,
     role: {
         type: String,
         enum: ['customer', 'admin', 'seller'],
@@ -72,13 +67,6 @@ const UserSchema = new mongoose_1.default.Schema({
     avatar: {
         type: String,
     },
-    wishlist: [
-        {
-            type: mongoose_1.default.Schema.Types.ObjectId,
-            ref: 'Product',
-            unique: true,
-        },
-    ],
     isEmailVerified: {
         type: Boolean,
         default: false,
@@ -87,49 +75,16 @@ const UserSchema = new mongoose_1.default.Schema({
         type: Boolean,
         default: false,
     },
-    cart: [
-        {
-            product: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: 'Product',
-                required: true,
-            },
-            quantity: {
-                type: Number,
-                required: true,
-                min: 1,
-            },
-            variants: {
-                type: Map,
-                of: String,
-            },
-        },
-    ],
-    orderHistory: [
-        {
-            orderId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: 'Order',
-                required: true,
-            },
-            orderDate: {
-                type: Date,
-                default: Date.now,
-            },
-        },
-    ],
     refreshToken: {
         type: String,
     },
 }, { timestamps: true });
-UserSchema.pre('save', async function (next) {
-    const user = this;
+userSchema.pre('save', async function (next) {
     try {
-        if (!user.isModified('password') && !this.password && this.authType !== 'local') {
+        if (!this.isModified('password')) {
             return next();
         }
-        const salt = await bcrypt_1.default.genSalt(10);
-        user.password = await bcrypt_1.default.hash(user.password, salt);
+        this.password = await bcrypt_1.default.hash(this.password, 10);
         next();
     }
     catch (error) {
@@ -137,13 +92,10 @@ UserSchema.pre('save', async function (next) {
         next(error);
     }
 });
-UserSchema.methods.comparePassword = async function (newPassowrd) {
-    if (!this.password) {
-        throw new Error('Password not set for this user');
-    }
-    return await bcrypt_1.default.compare(newPassowrd, this.password);
+userSchema.methods.comparePassword = async function (enteredPassword) {
+    return await bcrypt_1.default.compare(enteredPassword, this.password);
 };
-UserSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateAccessToken = function () {
     const payload = {
         _id: this._id,
         username: this.username,
@@ -152,18 +104,18 @@ UserSchema.methods.generateAccessToken = function () {
     };
     const tokenSecret = process.env.ACCESS_TOKEN_SECRET;
     const options = {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
     };
     return jsonwebtoken_1.default.sign(payload, tokenSecret, options);
 };
-UserSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function () {
     const payload = {
         _id: this._id,
     };
     const tokenSecret = process.env.REFRESH_TOKEN_SECRET;
     const options = {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     };
     return jsonwebtoken_1.default.sign(payload, tokenSecret, options);
 };
-exports.User = mongoose_1.default.model('User', UserSchema);
+exports.User = mongoose_1.default.model('User', userSchema);

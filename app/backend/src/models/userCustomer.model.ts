@@ -1,57 +1,50 @@
 import mongoose from 'mongoose';
-import { addressSchema } from './userSeller.model';
+import { addressSchema } from './common.model';
+import { ICustomer } from '@smartcartai/shared/src/interface/user';
 
-const userCustomerSchema = new mongoose.Schema(
-   {
-      userId: {
-         type: mongoose.Schema.Types.ObjectId,
-         ref: 'User',
-         required: true,
-         unique: true
+interface CustomerModel extends ICustomer {
+   userId: mongoose.Types.ObjectId;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+const userCustomerSchema = new mongoose.Schema<CustomerModel>(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true,
+    },
+    address: addressSchema,
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
       },
-      address: addressSchema,
-      wishlist: [{
-         type: mongoose.Schema.Types.ObjectId,
-         ref: 'Product'
-      }],
-      orderHistory: [{
-         orderId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Order',
-            required: true
-         },
-         orderDate: {
-            type: Date,
-            default: Date.now
-         },
-         status: {
-            type: String,
-            enum: ['pending', 'completed', 'cancelled'],
-            default: 'pending'
-         },
-         cart: [{
-            productId: {
-               type: mongoose.Schema.Types.ObjectId,
-               ref: 'Product',
-               required: true
-            },
-            quantity: {
-               type: Number,
-               required: true,
-               min: 1
-            },
-            variants: {
-               type: Map,
-               of: String
-            },
-            price: {
-               type: Number,
-               required: true
-            }
-         }]
-      }],
-   },
-   { timestamps: true }
+    ],
+    orderHistory: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Order',
+      },
+    ],
+    cart: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        }
+      },
+    ],
+  },
+  { timestamps: true }
 );
 
 export const UserCustomer = mongoose.model('UserCustomer', userCustomerSchema);
