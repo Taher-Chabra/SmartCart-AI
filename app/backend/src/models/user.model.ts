@@ -1,7 +1,29 @@
 import mongoose, { Document } from 'mongoose';
-import { IUserFull as IUser, IUserJwtPayload } from '@smartcartai/shared/interface/user';
+import { IUserBase } from '@smartcartai/shared/src/interface/user';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+
+interface IUserJwtPayload extends IUserBase {
+  _id: mongoose.Types.ObjectId;
+}
+
+interface IUser extends IUserBase {
+  fullName: string;
+  password: string;
+  phone: {
+    countryCode?: string;
+    number?: string;
+  };
+  avatar: string;
+  isActive: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  google: {
+    id: string;
+  };
+  authType: 'local' | 'google';
+  refreshToken?: string;
+}
 
 interface IUserMethods {
   comparePassword(newPassword: string): Promise<boolean>;
@@ -9,26 +31,12 @@ interface IUserMethods {
   generateRefreshToken(): string;
 }
 
-export interface UserDocument extends IUser, Document, IUserMethods {
-  _id: mongoose.Types.ObjectId;
-}
+export interface UserDocument extends IUser, IUserMethods, Document {}
 
 const phoneSchema = new mongoose.Schema(
   {
     countryCode: String,
     number: { type: String, trim: true },
-  },
-  { _id: false }
-);
-
-const addressSchema = new mongoose.Schema(
-  {
-    line1: { type: String, trim: true },
-    city: { type: String, trim: true },
-    state: String,
-    country: String,
-    zip: String,
-    landmark: String,
   },
   { _id: false }
 );
@@ -61,24 +69,27 @@ const userSchema = new mongoose.Schema<UserDocument>(
       required: false,
       minlength: [8, 'Password must be at least 8 characters long'],
     },
-    google: { 
+    google: {
       id: {
         type: String,
         unique: true,
         sparse: true,
         required: false,
-        select: false
-      }
+        select: false,
+      },
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     authType: {
       type: String,
       enum: ['local', 'google'],
       default: 'local',
       required: true,
-      select: false
+      select: false,
     },
     phone: phoneSchema,
-    address: addressSchema,
     role: {
       type: String,
       enum: ['customer', 'admin', 'seller'],
@@ -87,13 +98,6 @@ const userSchema = new mongoose.Schema<UserDocument>(
     avatar: {
       type: String,
     },
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        unique: true,
-      },
-    ],
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -102,37 +106,6 @@ const userSchema = new mongoose.Schema<UserDocument>(
       type: Boolean,
       default: false,
     },
-    cart: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Product',
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-        variants: {
-          type: Map,
-          of: String,
-        },
-      },
-    ],
-    orderHistory: [
-      {
-        orderId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Order',
-          required: true,
-        },
-        orderDate: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
     refreshToken: {
       type: String,
     },
@@ -140,13 +113,13 @@ const userSchema = new mongoose.Schema<UserDocument>(
   { timestamps: true }
 );
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function (this: UserDocument, next) {
   try {
     if (!this.isModified('password')) {
       return next();
     }
 
-    this.password = await bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10);
 
     next();
   } catch (error) {
@@ -155,12 +128,11 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-userSchema.methods.comparePassword = async function(
+userSchema.methods.comparePassword = async function (
   enteredPassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
-}
-
+};
 
 userSchema.methods.generateAccessToken = function (): string {
   const payload: IUserJwtPayload = {
@@ -171,16 +143,12 @@ userSchema.methods.generateAccessToken = function (): string {
   };
 
   const tokenSecret = process.env.ACCESS_TOKEN_SECRET!;
- 
+
   const options = {
-    expiresIn: process.env.ACCESS_TOKEN_EXPIRY as SignOptions['expiresIn']
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRY as SignOptions['expiresIn'],
   };
 
-  return jwt.sign(
-    payload,
-    tokenSecret,
-    options
-  );
+  return jwt.sign(payload, tokenSecret, options);
 };
 
 userSchema.methods.generateRefreshToken = function (): string {
@@ -191,14 +159,10 @@ userSchema.methods.generateRefreshToken = function (): string {
   const tokenSecret: Secret = process.env.REFRESH_TOKEN_SECRET!;
 
   const options = {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRY as SignOptions['expiresIn']
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRY as SignOptions['expiresIn'],
   };
 
-  return jwt.sign(
-    payload,
-    tokenSecret,
-    options
-  );
+  return jwt.sign(payload, tokenSecret, options);
 };
 
 export const User = mongoose.model('User', userSchema);
