@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { IAdmin } from '@smartcartai/shared/src/interface/user';
 
-interface AdminModel extends IAdmin {
+export interface AdminModel extends IAdmin, Document {
    userId: mongoose.Types.ObjectId;
    createdAt: Date;
    updatedAt: Date;

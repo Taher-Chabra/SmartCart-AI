@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { addressSchema } from './common.model';
 import { ISeller } from '@smartcartai/shared/src/interface/user';
 
-interface SellerModel extends ISeller {
+export interface SellerModel extends ISeller, Document {
   userId: mongoose.Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
@@ -19,18 +19,15 @@ const userSellerSchema = new mongoose.Schema<SellerModel>(
     businessType: {
       type: String,
       enum: ['individual', 'company'],
-      required: true,
     },
     businessName: {
       type: String,
-      required: true,
       unique: true,
       lowerCase: true,
       trim: true,
     },
     businessEmail: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
       trim: true,

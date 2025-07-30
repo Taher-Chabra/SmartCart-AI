@@ -1,31 +1,7 @@
 import mongoose, { Document } from 'mongoose';
-import { IUserBase } from '@smartcartai/shared/src/interface/user'
+import { IJwtPayload, IUser } from '@smartcartai/shared/src/interface/user'
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-
-interface IUserJwtPayload extends IUserBase {
-  _id: mongoose.Types.ObjectId;
-}
-
-interface IUser extends IUserBase {
-  fullName: string;
-  password: string;
-  phone: {
-    countryCode?: string;
-    number?: string;
-  };
-  avatar: string;
-  isActive: boolean;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  google: {
-    id: string;
-  };
-  authType: 'local' | 'google';
-  refreshToken?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface IUserMethods {
   comparePassword(newPassword: string): Promise<boolean>;
@@ -33,7 +9,7 @@ interface IUserMethods {
   generateRefreshToken(): string;
 }
 
-export interface UserDocument extends IUser, IUserMethods, Document {
+export interface UserModel extends IUser, IUserMethods, Document {
   _id: mongoose.Types.ObjectId;
 }
 
@@ -45,7 +21,7 @@ const phoneSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const userSchema = new mongoose.Schema<UserDocument>(
+const userSchema = new mongoose.Schema<UserModel>(
   {
     fullName: {
       type: String,
@@ -139,7 +115,7 @@ userSchema.methods.comparePassword = async function (
 };
 
 userSchema.methods.generateAccessToken = function (): string {
-  const payload: IUserJwtPayload = {
+  const payload: IJwtPayload = {
     _id: this._id,
     username: this.username,
     email: this.email,

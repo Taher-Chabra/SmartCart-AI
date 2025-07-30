@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { addressSchema } from './common.model';
 import { ICustomer } from '@smartcartai/shared/src/interface/user';
 
-interface CustomerModel extends ICustomer {
+export interface CustomerModel extends ICustomer, Document {
    userId: mongoose.Types.ObjectId;
     createdAt?: Date;
     updatedAt?: Date;
@@ -34,11 +34,9 @@ const userCustomerSchema = new mongoose.Schema<CustomerModel>(
         productId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Product',
-          required: true,
         },
         quantity: {
           type: Number,
-          required: true,
           min: 1,
         }
       },

@@ -7,6 +7,7 @@ shared/node_modules/
 dist/
 build/
 .next/
+out/
 *.tsbuildinfo
 app/*/dist/
 app/*/build/
@@ -41,7 +42,6 @@ Thumbs.db
 coverage/
 *.lcov
 
-# Next.js
-.next/
-out/
-build/
+# Transpiled files
+shared/**/*.js
+shared/*/*.d.ts

@@ -1,15 +1,8 @@
-import { User, UserDocument } from "../models/user.model";
+import mongoose from "mongoose";
 import { generateSecretTokens } from "../utils/tokens.utils";
-import { ApiError } from "./ApiError";
 
-export const authResponseData = async (user: UserDocument) => {
-   const { accessToken, refreshToken } = await generateSecretTokens(user._id);
-
-   const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
-
-   if (!loggedInUser) {
-      throw new ApiError(400, "Failed to log in user.");
-   }
+export const authResponseData = async (userId: mongoose.Types.ObjectId) => {
+   const { accessToken, refreshToken } = await generateSecretTokens(userId);
 
    const cookieOptions  = {
       httpOnly: true,
@@ -20,7 +13,6 @@ export const authResponseData = async (user: UserDocument) => {
    return {
       accessToken,
       refreshToken,
-      loggedInUser,
       cookieOptions
    }
 }

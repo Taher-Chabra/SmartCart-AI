@@ -1,7 +1,31 @@
-export interface IUserBase {
+export interface IJwtPayload {
+  _id?: string;
   username: string;
   email: string;
   role: 'customer' | 'admin' | 'seller';
+}
+
+export interface IUser {
+  username: string;
+  email: string;
+  role: 'customer' | 'admin' | 'seller';
+  fullName: string;
+  password: string;
+  phone: {
+    countryCode?: string;
+    number?: string;
+  };
+  avatar: string;
+  isActive: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  google: {
+    id: string;
+  };
+  authType: 'local' | 'google';
+  refreshToken?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ICustomer {
