@@ -7,7 +7,7 @@ export const authResponseData = async (userId: mongoose.Types.ObjectId) => {
    const cookieOptions  = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const
+      sameSite: "strict" as const
    }
 
    return {
