@@ -21,7 +21,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@smartcartai/shared/*": ["../../shared/src/*"]
+      "@smartcartai/shared": ["../../shared/src/*"]
     },
     "typeRoots": [
       "../../node_modules/@types",

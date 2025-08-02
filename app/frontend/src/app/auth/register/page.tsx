@@ -5,6 +5,7 @@ import { Mail, Lock, User, Briefcase, ArrowRight } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import Link from 'next/link';
+import { signupUser } from '@/server-actions/auth.action';
 
 const RegisterPage = () => {
   const [fullName, setFullName] = useState('');
@@ -12,17 +13,6 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSeller, setIsSeller] = useState(false);
-
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log({
-      fullName,
-      username,
-      email,
-      password,
-      role: isSeller ? 'seller' : 'customer',
-    });
-  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -66,10 +56,11 @@ const RegisterPage = () => {
       <div className="p-8 md:p-12">
         <h2 className="text-3xl font-bold mb-2">Create Your Account</h2>
         <p className="text-gray-400 mb-8">Let's get you set up.</p>
-        <form onSubmit={handleRegister}>
+        <form action={signupUser}>
           <FormInput
             Icon={User}
             type="text"
+            name="fullName"
             placeholder="Full Name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -77,6 +68,7 @@ const RegisterPage = () => {
           <FormInput
             Icon={User}
             type="text"
+            name="username"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -84,6 +76,7 @@ const RegisterPage = () => {
           <FormInput
             Icon={Mail}
             type="email"
+            name="email"
             placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -91,6 +84,7 @@ const RegisterPage = () => {
           <FormInput
             Icon={Lock}
             type="password"
+            name="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -99,6 +93,7 @@ const RegisterPage = () => {
           <ToggleSwitch
             value={isSeller}
             setValue={setIsSeller}
+            name="role"
             htmlFor="role-toggle"
             id="role-toggle"
           />

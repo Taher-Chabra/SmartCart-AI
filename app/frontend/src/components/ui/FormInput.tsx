@@ -1,16 +1,18 @@
 interface FormInputProps {
   Icon: React.ElementType;
   type: string;
+  name?: string;
   placeholder: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const FormInput = ({ Icon, type, placeholder, value, onChange }: FormInputProps) => (
+const FormInput = ({ Icon, type, placeholder, value, onChange, name }: FormInputProps) => (
   <div className="relative flex items-center mb-4">
     <Icon className="absolute left-4 text-gray-400" size={20} />
     <input
       type={type}
+      name={name}
       placeholder={placeholder}
       value={value}
       onChange={onChange}

@@ -5,12 +5,15 @@ export interface IJwtPayload {
   role: 'customer' | 'admin' | 'seller';
 }
 
-export interface IUser {
+export interface IUserSignup {
   username: string;
   email: string;
   role: 'customer' | 'admin' | 'seller';
   fullName: string;
   password: string;
+}
+
+export interface IUser extends IUserSignup {
   phone: {
     countryCode?: string;
     number?: string;

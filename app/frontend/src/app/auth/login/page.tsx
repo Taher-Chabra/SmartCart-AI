@@ -4,19 +4,15 @@ import { useState } from 'react';
 import { Mail, Lock, ArrowRight, LogIn } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
 import Link from 'next/link';
+import { loginUser } from '@/server-actions/auth.action';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log({ email, password });
-  };
-
-  const handleGoogleSignIn = () => {
-    console.log('Signing in with Google...');
-  };
+  const handleGoogleLogin = async () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login-google`;
+  }
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -26,10 +22,11 @@ const LoginPage = () => {
         <p className="text-gray-400 mb-8">
           Sign in to continue to your account.
         </p>
-        <form onSubmit={handleLogin}>
+        <form action={loginUser}>
           <FormInput
             Icon={Mail}
             type="email"
+            name="email"
             placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -37,6 +34,7 @@ const LoginPage = () => {
           <FormInput
             Icon={Lock}
             type="password"
+            name="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -67,7 +65,7 @@ const LoginPage = () => {
         </div>
 
         <button
-          onClick={handleGoogleSignIn}
+          onClick={handleGoogleLogin}
           className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center"
         >
           <LogIn className="mr-3" size={20} />

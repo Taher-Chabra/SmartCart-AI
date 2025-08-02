@@ -38,13 +38,14 @@ export const refreshAccessToken = async (error: AxiosError) => {
 
     try {
       await api.post('/auth/refresh-token');
-      processQueue(null);
-
+      
       if (originalRequest.url?.includes('/auth/refresh-token')) {
         return Promise.reject(error);
       }
-
+      
+      processQueue(null);
       return api(originalRequest);
+      
     } catch (error) {
       processQueue(error as AxiosError);
 
