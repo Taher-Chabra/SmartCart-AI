@@ -8,7 +8,7 @@ export interface IJwtPayload {
 export interface IUserSignup {
   username: string;
   email: string;
-  role: 'customer' | 'admin' | 'seller';
+  role: 'customer' | 'seller' | 'admin';
   fullName: string;
   password: string;
 }
@@ -67,6 +67,16 @@ export interface IAdmin {
   permissions: Array<'read' | 'write' | 'delete'>;
   lastLogin: Date;
 }
+
+export type ICombinedUser = IUser & { _id: string } & {
+  createdAt: string;
+  updatedAt: string;
+} & {
+  profile:
+    | (ICustomer & { _id: string })
+    | (ISeller & { _id: string })
+    | (IAdmin & { _id: string });
+};
 
 export interface IUserAddress {
   line1: string;

@@ -1,18 +1,60 @@
-"use client";
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, LogIn } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
 import Link from 'next/link';
-import { loginUser } from '@/server-actions/auth.action';
+import { loginUser } from '@/services/auth.service';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth.store';
+import { redirect } from 'next/navigation';
+
+const loginSchema = z.object({
+  email: z.email('Invalid email format'),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
+});
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
+
+  const setUser = useAuthStore((state) => state.setUser);
+
+  const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const userData = {
+      email,
+      password,
+    };
+
+    const validation = loginSchema.safeParse(userData);
+    if (!validation.success) {
+      setErrors(z.treeifyError(validation.error).errors);
+      return;
+    }
+    setErrors({});
+
+    const response = await loginUser(userData);
+    if (!response.success) {
+      setErrors({ message: response.message });
+      return;
+    }
+    setUser(response.user);
+    redirect('/user/dashboard');
+  };
 
   const handleGoogleLogin = async () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login-google`;
-  }
+  };
+
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      toast.error(Object.values(errors).join(', ') || 'An error occurred');
+    }
+  }, [errors]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -22,7 +64,7 @@ const LoginPage = () => {
         <p className="text-gray-400 mb-8">
           Sign in to continue to your account.
         </p>
-        <form action={loginUser}>
+        <form onSubmit={handleUserLogin}>
           <FormInput
             Icon={Mail}
             type="email"
@@ -99,7 +141,7 @@ const LoginPage = () => {
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src =
-               'https://placehold.co/400x300/1e1b4b/ffffff?text=Image+Not+Found';
+              'https://placehold.co/400x300/1e1b4b/ffffff?text=Image+Not+Found';
           }}
         />
       </div>

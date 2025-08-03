@@ -109,7 +109,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!newUser) {
-    throw new ApiError(500, 'Failed to create base user account.');
+    throw new ApiError(500, 'Failed to create user account.');
   }
 
   roleProfile = await ProfileModel.create({
