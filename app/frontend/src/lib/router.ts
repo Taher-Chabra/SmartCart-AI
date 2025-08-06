@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 type navigatorFn = (path: string) => void;
 
 let globalRouter: navigatorFn | null = null;
@@ -15,6 +13,5 @@ export const navigateTo = (path: string) => {
     if (process.env.NODE_ENV === 'development') {
       console.warn('Global router is not initialized!');
     }
-    toast.error('Navigation failed: Global router is not set.');
   }
 };

@@ -8,19 +8,20 @@ import { loginUser } from '@/services/auth.service';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
-import { redirect } from 'next/navigation';
+import { navigateTo } from '@/lib/router';
 
 const loginSchema = z.object({
-  email: z.email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  email: z.email({ message: 'Invalid email format' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters long' }),
 });
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ message: any }>({ message: '' });
 
   const setUser = useAuthStore((state) => state.setUser);
+  const user = useAuthStore((state) => state.user);
 
   const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,18 +33,30 @@ const LoginPage = () => {
 
     const validation = loginSchema.safeParse(userData);
     if (!validation.success) {
-      setErrors(z.treeifyError(validation.error).errors);
+      console.error(z.treeifyError(validation.error));
+      setErrors({ message: z.treeifyError(validation.error).properties });
       return;
     }
-    setErrors({});
+    setErrors({ message: '' });
 
     const response = await loginUser(userData);
     if (!response.success) {
       setErrors({ message: response.message });
       return;
     }
-    setUser(response.user);
-    redirect('/user/dashboard');
+    const currentUser = response.data.user;
+    setUser(currentUser);
+    
+    if (currentUser.role === 'seller') {
+      navigateTo('/seller/dashboard');
+    }
+    if (currentUser.role === 'customer') {
+      navigateTo('/user/dashboard');
+    }
+    if (currentUser.role === 'admin') {
+      navigateTo('/admin/dashboard');
+    }
+    toast.success(response.message || 'Login successful');
   };
 
   const handleGoogleLogin = async () => {
@@ -51,8 +64,12 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      toast.error(Object.values(errors).join(', ') || 'An error occurred');
+    if (errors?.message) {
+      toast.error(
+        Object.values(errors.message)
+          .map((err: any) => err.message)
+          || 'An error occurred'
+      );
     }
   }, [errors]);
 

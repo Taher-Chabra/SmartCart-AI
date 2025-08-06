@@ -9,7 +9,7 @@ import { signupUser } from '@/services/auth.service';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
-import { redirect } from 'next/navigation';
+import { navigateTo } from '@/lib/router';
 
 const signupSchema = z.object({
   fullName: z.string().min(5, 'Full name is required'),
@@ -27,7 +27,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSeller, setIsSeller] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ message: any }>({ message: '' });
 
   const setUser = useAuthStore((state) => state.setUser);
 
@@ -39,23 +39,34 @@ const RegisterPage = () => {
       username,
       email,
       password,
-      role: isSeller ? 'seller' : 'customer' as 'customer' | 'seller',
+      role: isSeller ? 'seller' : ('customer' as 'customer' | 'seller'),
     };
 
     const validation = signupSchema.safeParse(userData);
     if (!validation.success) {
-      setErrors(z.treeifyError(validation.error).errors);
+      setErrors({ message: z.treeifyError(validation.error).properties });
       return;
     }
-    setErrors({});
+    setErrors({ message: '' });
 
     const response = await signupUser(userData);
     if (!response.success) {
       setErrors({ message: response.message });
       return;
     }
-    setUser(response.user);
-    redirect('/user/dashboard');
+    const currentUser = response.data.user;
+    setUser(currentUser);
+    
+    if (currentUser.role === 'seller') {
+      navigateTo('/seller/dashboard');
+    }
+    if (currentUser.role === 'customer') {
+      navigateTo('/user/dashboard');
+    }
+    if (currentUser.role === 'admin') {
+      navigateTo('/admin/dashboard');
+    }
+    toast.success(response.message || 'Login successful');
   };
 
   useEffect(() => {

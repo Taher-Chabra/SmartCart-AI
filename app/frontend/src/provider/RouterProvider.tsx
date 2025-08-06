@@ -1,17 +1,13 @@
 import { setGlobalRouter } from "@/lib/router";
-import { useRouter } from "next/compat/router";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export default function RouterProvider({ children }: { children: React.ReactNode }) {
+export default function RouterProvider() {
    const router = useRouter();
 
    useEffect(() => {
       if (router) setGlobalRouter(router.push)
    }, [router])
-   
-  return (
-    <>
-      {children}
-    </>
-  );
+
+  return null;
 }
