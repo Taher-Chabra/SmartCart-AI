@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { generateSecretTokens } from "../utils/tokens.utils";
+import { generateSecretTokens } from "../lib/tokens";
 
 export const authResponseData = async (userId: mongoose.Types.ObjectId) => {
    const { accessToken, refreshToken } = await generateSecretTokens(userId);

@@ -20,9 +20,11 @@ configurePassport(app);
 
 // Import routes
 import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
 
 
 // Use routes
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 
 export { app };

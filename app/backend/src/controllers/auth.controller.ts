@@ -1,15 +1,13 @@
-import { asyncHandler } from '../utils/asyncHandler';
 import { Request, Response } from 'express';
-import { Model } from 'mongoose';
+import { asyncHandler } from '../utils/asyncHandler';
 import { User, UserModel } from '../models/user.model';
 import { ApiError } from '../utils/ApiError';
 import { ApiResponse } from '../utils/ApiResponse';
-import { authResponseData } from '../utils/auth.utils';
-import { CustomerModel, UserCustomer } from '../models/userCustomer.model';
-import { SellerModel, UserSeller } from '../models/userSeller.model';
-import { AdminModel, UserAdmin } from '../models/userAdmin.model';
+import { authResponseData } from '../utils/authTokens';
 import jwt from 'jsonwebtoken';
 import { IJwtPayload } from '@smartcartai/shared/src/interface/user';
+import { getProfileByRole } from '../lib/getProfileByRole';
+import { profileEnd } from 'console';
 
 const authSuccessCallback = asyncHandler(
   async (req: Request, res: Response) => {
@@ -20,30 +18,10 @@ const authSuccessCallback = asyncHandler(
       throw new ApiError(401, 'Authentication failed. User not found!');
     }
 
-    let roleProfile: CustomerModel | SellerModel | AdminModel | null = null;
-    let ProfileModel: Model<any>;
+    const profile = await getProfileByRole(user.role, user._id);
 
-    switch (user.role) {
-      case 'customer':
-        ProfileModel = UserCustomer;
-        break;
-      case 'seller':
-        ProfileModel = UserSeller;
-        break;
-      case 'admin':
-        ProfileModel = UserAdmin;
-        break;
-      default:
-        throw new ApiError(500, 'Invalid user role.');
-    }
-
-    roleProfile = await ProfileModel.findOne({ userId: user._id });
-
-    if (!roleProfile) {
-      throw new ApiError(
-        500,
-        `User profile for role:'${user.role}' not found.`
-      );
+    if (!profile) {
+      throw new ApiError(400, `Profile not found for role: ${user.role}`);
     }
 
     const { accessToken, refreshToken, cookieOptions } = await authResponseData(
@@ -52,7 +30,7 @@ const authSuccessCallback = asyncHandler(
 
     const fullUserProfile = {
       ...user.toJSON(),
-      profile: roleProfile.toJSON(),
+      ...profile.toJSON(),
     };
 
     return res
@@ -86,20 +64,6 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'User with this credentials already exists!');
   }
 
-  let roleProfile: CustomerModel | SellerModel | null = null;
-  let ProfileModel: Model<any>;
-
-  switch (role) {
-    case 'customer':
-      ProfileModel = UserCustomer;
-      break;
-    case 'seller':
-      ProfileModel = UserSeller;
-      break;
-    default:
-      throw new ApiError(400, 'Invalid user role.');
-  }
-
   const newUser = await User.create({
     fullName,
     username: username.toLowerCase(),
@@ -112,18 +76,21 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, 'Failed to create user account.');
   }
 
-  roleProfile = await ProfileModel.create({
-    userId: newUser._id,
-  });
+  const profile = await getProfileByRole(newUser.role, newUser._id);
 
+  if (!profile) {
+    throw new ApiError(400, `Unable to create profile`);
+  }
+
+  
+  const fullUserProfile = {
+    ...newUser.toJSON(),
+    ...profile.toJSON(),
+  };
+  
   const { accessToken, refreshToken, cookieOptions } = await authResponseData(
     newUser._id
   );
-
-  const fullUserProfile = {
-    ...newUser.toJSON(),
-    profile: roleProfile?.toJSON(),
-  };
 
   return res
     .status(201)

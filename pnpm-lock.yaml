@@ -114,6 +114,9 @@ importers:
       axios:
         specifier: ^1.11.0
         version: 1.11.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       lucide-react:
         specifier: ^0.533.0
         version: 0.533.0(react@18.3.1)
@@ -139,6 +142,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.0.0-next-6
         version: 4.1.11
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: ^20.14.9
         version: 20.19.9
