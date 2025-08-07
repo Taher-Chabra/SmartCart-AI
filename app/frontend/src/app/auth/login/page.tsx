@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
+import { cacheUser } from '@/utils/userCache';
 
 const loginSchema = z.object({
   email: z.email({ message: 'Invalid email format' }),
@@ -46,6 +47,7 @@ const LoginPage = () => {
     }
     const currentUser = response.data.user;
     setUser(currentUser);
+    cacheUser(currentUser);
     
     if (currentUser.role === 'seller') {
       navigateTo('/seller/dashboard');

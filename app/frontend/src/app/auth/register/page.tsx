@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
+import { cacheUser } from '@/utils/userCache';
 
 const signupSchema = z.object({
   fullName: z.string().min(5, 'Full name is required'),
@@ -56,6 +57,7 @@ const RegisterPage = () => {
     }
     const currentUser = response.data.user;
     setUser(currentUser);
+    cacheUser(currentUser);
     
     if (currentUser.role === 'seller') {
       navigateTo('/seller/dashboard');

@@ -3,9 +3,10 @@ import { cacheUser, getCachedUser, clearUserCache } from '@/utils/userCache';
 import { useAuthStore } from '@/store/auth.store';
 import { getUser } from '@/services/user.service';
 import axios from 'axios';
+import { ICombinedUser } from '@smartcartai/shared/src/interface/user';
 
 async function rehydrateUser(
-  setUser: (user: any) => void,
+  setUser: (user: ICombinedUser) => void,
   setLoading: (loading: boolean) => void,
   setError: (error: string) => void
 ) {
@@ -44,10 +45,13 @@ export default function RehydrateUserProvider() {
   const setUser = useAuthStore((state) => state.setUser);
   const setLoading = useAuthStore((state) => state.setLoading);
   const setError = useAuthStore((state) => state.setError);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
-    rehydrateUser(setUser, setLoading, setError);
-  }, [setUser, setLoading, setError]);
+    if (isAuthenticated) {
+      rehydrateUser(setUser, setLoading, setError);
+    }
+  }, [setUser, setLoading, setError, isAuthenticated]);
 
   return null;
 }

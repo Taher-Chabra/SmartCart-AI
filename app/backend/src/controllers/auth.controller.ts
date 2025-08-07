@@ -7,7 +7,6 @@ import { authResponseData } from '../utils/authTokens';
 import jwt from 'jsonwebtoken';
 import { IJwtPayload } from '@smartcartai/shared/src/interface/user';
 import { getProfileByRole } from '../lib/getProfileByRole';
-import { profileEnd } from 'console';
 
 const authSuccessCallback = asyncHandler(
   async (req: Request, res: Response) => {

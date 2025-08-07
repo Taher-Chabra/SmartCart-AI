@@ -3,12 +3,25 @@
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
 import { logoutUser } from "@/services/auth.service";
+import { clearUserCache } from "@/utils/userCache";
+import { navigateTo } from "@/lib/router";
 
 function Navbar() {
    const user = useAuthStore((state) => state.user);
+   const clearUser = useAuthStore((state) => state.clearUser);
+   
 
    const handleUserLogout = async() => {
-      await logoutUser();
+      const res = await logoutUser();
+      if (res.success) {
+         clearUser();
+         clearUserCache();
+         sessionStorage.removeItem('auth-storage');
+         navigateTo('/');
+         sessionStorage.removeItem('user');
+      } else {
+         console.error('Logout failed:', res.message);
+      }
    }
    
    return (
