@@ -19,10 +19,8 @@ const loginSchema = z.object({
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ message: any }>({ message: '' });
 
   const setUser = useAuthStore((state) => state.setUser);
-  const user = useAuthStore((state) => state.user);
 
   const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,16 +31,15 @@ const LoginPage = () => {
     };
 
     const validation = loginSchema.safeParse(userData);
+
     if (!validation.success) {
-      console.error(z.treeifyError(validation.error));
-      setErrors({ message: z.treeifyError(validation.error).properties });
+      console.log(z.prettifyError(validation.error));
       return;
     }
-    setErrors({ message: '' });
 
     const response = await loginUser(userData);
     if (!response.success) {
-      setErrors({ message: response.message });
+      console.error(response.error);
       return;
     }
     const currentUser = response.data.user;
@@ -53,7 +50,7 @@ const LoginPage = () => {
       navigateTo('/seller/dashboard');
     }
     if (currentUser.role === 'customer') {
-      navigateTo('/user/dashboard');
+      navigateTo('/customer/dashboard');
     }
     if (currentUser.role === 'admin') {
       navigateTo('/admin/dashboard');
@@ -64,16 +61,6 @@ const LoginPage = () => {
   const handleGoogleLogin = async () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login-google`;
   };
-
-  useEffect(() => {
-    if (errors?.message) {
-      toast.error(
-        Object.values(errors.message)
-          .map((err: any) => err.message)
-          || 'An error occurred'
-      );
-    }
-  }, [errors]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -98,6 +85,7 @@ const LoginPage = () => {
             name="password"
             placeholder="Password"
             value={password}
+            formType='login'
             onChange={(e) => setPassword(e.target.value)}
           />
 

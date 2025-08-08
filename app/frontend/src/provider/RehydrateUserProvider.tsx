@@ -13,6 +13,7 @@ async function rehydrateUser(
   setLoading(true);
   const cachedUser = getCachedUser();
   if (cachedUser) {
+    console.log('Rehydrated user from cache');
     setLoading(false);
     setUser(cachedUser);
     return;

@@ -28,7 +28,6 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSeller, setIsSeller] = useState(false);
-  const [errors, setErrors] = useState<{ message: any }>({ message: '' });
 
   const setUser = useAuthStore((state) => state.setUser);
 
@@ -40,42 +39,35 @@ const RegisterPage = () => {
       username,
       email,
       password,
-      role: isSeller ? 'seller' : ('customer' as 'customer' | 'seller'),
+      role: isSeller ? 'seller' : 'customer' as ('customer' | 'seller'),
     };
 
     const validation = signupSchema.safeParse(userData);
     if (!validation.success) {
-      setErrors({ message: z.treeifyError(validation.error).properties });
+      console.error(z.prettifyError(validation.error));
       return;
     }
-    setErrors({ message: '' });
 
     const response = await signupUser(userData);
     if (!response.success) {
-      setErrors({ message: response.message });
+      console.error(response.error);
       return;
     }
+
     const currentUser = response.data.user;
     setUser(currentUser);
     cacheUser(currentUser);
-    
     if (currentUser.role === 'seller') {
       navigateTo('/seller/dashboard');
     }
     if (currentUser.role === 'customer') {
-      navigateTo('/user/dashboard');
+      navigateTo('/customer/dashboard');
     }
     if (currentUser.role === 'admin') {
       navigateTo('/admin/dashboard');
     }
-    toast.success(response.message || 'Login successful');
+    toast.success(response.message || 'Account created successfully');
   };
-
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      toast.error(Object.values(errors).join(', ') || 'An error occurred');
-    }
-  }, [errors]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -150,6 +142,7 @@ const RegisterPage = () => {
             name="password"
             placeholder="Password"
             value={password}
+            formType='register'
             onChange={(e) => setPassword(e.target.value)}
           />
 
