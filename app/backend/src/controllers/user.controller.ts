@@ -18,7 +18,7 @@ const getUser = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiError(404, "User not found");
    }
 
-   const profile = await getProfileByRole(currentUser.role, currentUser._id);
+   const profile = await getProfileByRole(currentUser.role, currentUser._id, 'find');
 
    if (!profile) {
       throw new ApiError(400, `Profile not found for User: ${currentUser.username}`);

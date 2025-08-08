@@ -17,7 +17,7 @@ const authSuccessCallback = asyncHandler(
       throw new ApiError(401, 'Authentication failed. User not found!');
     }
 
-    const profile = await getProfileByRole(user.role, user._id);
+    const profile = await getProfileByRole(user.role, user._id, 'find');
 
     if (!profile) {
       throw new ApiError(400, `Profile not found for role: ${user.role}`);
@@ -74,8 +74,8 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   if (!newUser) {
     throw new ApiError(500, 'Failed to create user account.');
   }
-
-  const profile = await getProfileByRole(newUser.role, newUser._id);
+  
+  const profile = await getProfileByRole(newUser.role, newUser._id, 'create');
 
   if (!profile) {
     throw new ApiError(400, `Unable to create profile`);
@@ -96,7 +96,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     .cookie('accessToken', accessToken, cookieOptions)
     .cookie('refreshToken', refreshToken, cookieOptions)
     .json(
-      new ApiResponse(201, fullUserProfile, 'User registered successfully')
+      new ApiResponse(201, { user: fullUserProfile }, 'User registered successfully')
     );
 });
 

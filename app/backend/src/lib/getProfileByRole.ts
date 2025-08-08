@@ -6,8 +6,9 @@ import { AdminModel, UserAdmin } from '../models/userAdmin.model';
 type UserModels = CustomerModel | SellerModel | AdminModel;
 
 export async function getProfileByRole(
-  role: string, 
-  userId: Types.ObjectId | null
+  role: string,
+  userId: Types.ObjectId | null,
+  type?: 'create' | 'find'
 ): Promise<UserModels | null> {
   let roleProfile: UserModels | null = null;
   let profileModel: Model<any> | null = null;
@@ -27,15 +28,13 @@ export async function getProfileByRole(
     return null;
   }
 
-  if (userId) {
+  if (type === 'find' && userId) {
     roleProfile = await profileModel.findOne({ userId });
-  } else {
+  }
+  if (type === 'create' && userId) {
     roleProfile = await profileModel.create({ userId });
   }
 
-  if (!roleProfile) {
-    return null;
-  }
-
-  return roleProfile;
+  if (roleProfile) return roleProfile;
+  return null;
 }
