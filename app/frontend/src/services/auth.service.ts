@@ -8,7 +8,6 @@ const signupUser = async (data: IUserSignup) => {
     const response = await api.post('/auth/register', data);
     return response.data;
   } catch (error: AxiosError | any) {
-    console.error(error.response);
     throw new Error(error.response?.data?.message || 'Error during signup');
   }
 };
@@ -19,8 +18,17 @@ const loginUser = async (data: { email: string; password: string }) => {
     const response = await api.post('/auth/login', data);
     return response.data;
   } catch (error: AxiosError | any) {
-    console.error(error.response);
     throw new Error(error.response?.data?.message || 'Error during login');
+  }
+};
+
+// choose role after google login
+const chooseRoleAfterGoogleLogin = async (userId: string, role: string) => {
+  try {
+    const response = await api.post(`/auth/${userId}/choose-role`, { role });
+    return response.data;
+  } catch (error: AxiosError | any) {
+    throw new Error(error.response?.data?.message || 'Error during role selection');
   }
 };
 
@@ -30,9 +38,8 @@ const logoutUser = async () => {
     const response = await api.post('/auth/logout');
     return response.data;
   } catch (error: AxiosError | any) {
-    console.error(error.response);
     throw new Error(error.response?.data?.message || 'Error during logout');
   }
 };
 
-export { signupUser, loginUser, logoutUser };
+export { signupUser, loginUser, chooseRoleAfterGoogleLogin, logoutUser };

@@ -7,7 +7,7 @@ type AuthState = {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  setUser: (user: ICombinedUser) => void;
+  setUser: (user: ICombinedUser | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearUser: () => void;

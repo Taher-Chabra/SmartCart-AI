@@ -18,26 +18,26 @@ export const api = axios.create({
 api.interceptors.response.use(
   (res: AxiosResponse) => res,
   (error: AxiosError) => {
+    const errorMessage =
+      error.response && error.response.data && typeof (error.response.data as any).message === 'string'
+        ? (error.response.data as any).message
+        : 'An error occurred';
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          if (isDevEnv) console.error(error.response.data);
+          console.error(errorMessage);
           return refreshAccessToken(error);
         case 403:
-          if (isDevEnv) console.error(error.response.data);
-          toast.error(
-            'You do not have permission to view this resource.'
-          );
+          console.error(errorMessage);
+          break;
+        case 400:
+          console.error(errorMessage);
           break;
         case 500:
-          if (isDevEnv) console.error(error.response.data);
-          toast.error(
-            'An unexpected error occurred. Please try again later.'
-          );
+          console.error(errorMessage);
           break;
         default:
-          if (isDevEnv) console.error('Unhandled error', error.response.data);
-          toast.error('An error occurred. Please try again.');
+          console.error('Unhandled error', errorMessage);
       }
     }
     return Promise.reject(error);

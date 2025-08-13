@@ -22,7 +22,6 @@ const processQueue = (error: AxiosError | null) => {
 
 export const refreshAccessToken = async (error: AxiosError) => {
   const originalRequest = error.config as any;
-  console.log('Refreshing access token...');
   if (error.response?.status === 401 && !originalRequest._retry) {
     originalRequest._retry = true;
 
@@ -38,7 +37,6 @@ export const refreshAccessToken = async (error: AxiosError) => {
 
     try {
       await api.post('/auth/refresh-token');
-      console.log('Access token refreshed successfully');
       if (originalRequest.url?.includes('/auth/refresh-token')) {
         return Promise.reject(error);
       }
