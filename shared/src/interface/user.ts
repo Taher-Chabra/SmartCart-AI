@@ -10,7 +10,7 @@ export interface IUserSignup {
   email: string;
   role: 'customer' | 'seller' | 'admin';
   fullName: string;
-  password: string;
+  password?: string;
 }
 
 export interface IUser extends IUserSignup {
