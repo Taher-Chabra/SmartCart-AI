@@ -11,23 +11,51 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
 import { cacheUser } from '@/utils/userCache';
+import { formatErrorObject } from '@/utils/formatErrorObject';
 
-const signupSchema = z.object({
-  fullName: z.string().min(5, 'Full name is required'),
-  username: z.string().min(3, 'Username is required'),
-  email: z.email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
-  role: z.enum(['customer', 'seller'], {
-    message: 'Invalid role',
-  }),
-});
+interface SignupFormData {
+  fullName: string;
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: 'customer' | 'seller';
+}
+
+function fullNameToUsername(fullName: string): string {
+  return fullName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^(\w+)\s+(\w+).*$/, '$1_$2');
+}
+
+export const signupSchema: z.ZodType<SignupFormData> = z
+  .object({
+    fullName: z.string().min(5, 'Full name must be at least 5 characters long'),
+    username: z.string().min(3, 'Username must be at least 3 characters long'),
+    email: z.email('Invalid email format'),
+    password: z.string().min(8, 'Password must be at least 8 characters long'),
+    confirmPassword: z
+      .string()
+      .min(8, 'Confirm password must be at least 8 characters long'),
+    role: z.enum(['customer', 'seller'], {
+      message: 'Invalid role',
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords must match',
+  });
 
 const RegisterPage = () => {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSeller, setIsSeller] = useState(false);
+  const [error, setError] = useState<Record<string, string>>({});
 
   const setUser = useAuthStore((state) => state.setUser);
 
@@ -39,35 +67,52 @@ const RegisterPage = () => {
       username,
       email,
       password,
-      role: isSeller ? 'seller' : 'customer' as ('customer' | 'seller'),
+      confirmPassword,
+      role: isSeller ? 'seller' : ('customer' as 'customer' | 'seller'),
     };
 
     const validation = signupSchema.safeParse(userData);
     if (!validation.success) {
-      console.error(z.prettifyError(validation.error));
+      const errObj = formatErrorObject(validation.error);
+      setError(errObj);
       return;
     }
 
-    const response = await signupUser(userData);
-    if (!response.success) {
-      console.error(response.error);
-      return;
-    }
+    try {
+      const response = await signupUser(userData);
+      if (!response.success) {
+        throw new Error(response.error.message || 'An unknown error occurred.');
+      }
 
-    const currentUser = response.data.user;
-    setUser(currentUser);
-    cacheUser(currentUser);
-    if (currentUser.role === 'seller') {
-      navigateTo('/seller/dashboard');
+      const currentUser = response.data.user;
+      setUser(currentUser);
+      cacheUser(currentUser);
+      if (currentUser.role === 'seller') {
+        navigateTo('/seller/dashboard');
+      }
+      if (currentUser.role === 'customer') {
+        navigateTo('/customer/dashboard');
+      }
+      if (currentUser.role === 'admin') {
+        navigateTo('/admin/dashboard');
+      }
+      toast.success(response.message || 'Account created successfully');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create account'
+      );
     }
-    if (currentUser.role === 'customer') {
-      navigateTo('/customer/dashboard');
-    }
-    if (currentUser.role === 'admin') {
-      navigateTo('/admin/dashboard');
-    }
-    toast.success(response.message || 'Account created successfully');
   };
+
+  useEffect(() => {
+    if (!confirmPassword) return;
+
+    setError((prev) => ({
+      ...prev,
+      confirmPassword:
+        confirmPassword !== password ? 'Passwords must match' : '',
+    }));
+  }, [password, confirmPassword]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -118,15 +163,30 @@ const RegisterPage = () => {
             name="fullName"
             placeholder="Full Name"
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) => {
+              setFullName(e.target.value);
+              if (error.fullName)
+                setError((prev) => ({ ...prev, fullName: '' }));
+            }}
+            error={error.fullName}
           />
           <FormInput
             Icon={User}
             type="text"
             name="username"
             placeholder="Username"
+            onClick={() => {
+              if (!username) {
+                setUsername(fullNameToUsername(fullName));
+              }
+            }}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              if (error.username)
+                setError((prev) => ({ ...prev, username: '' }));
+            }}
+            error={error.username}
           />
           <FormInput
             Icon={Mail}
@@ -134,7 +194,11 @@ const RegisterPage = () => {
             name="email"
             placeholder="Email Address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error.email) setError((prev) => ({ ...prev, email: '' }));
+            }}
+            error={error.email}
           />
           <FormInput
             Icon={Lock}
@@ -142,8 +206,23 @@ const RegisterPage = () => {
             name="password"
             placeholder="Password"
             value={password}
-            formType='register'
-            onChange={(e) => setPassword(e.target.value)}
+            formType="register"
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error.password)
+                setError((prev) => ({ ...prev, password: '' }));
+            }}
+            error={error.password}
+          />
+          <FormInput
+            Icon={Lock}
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            formType="register"
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={error.confirmPassword}
           />
 
           <ToggleSwitch

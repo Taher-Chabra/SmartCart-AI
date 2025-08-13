@@ -5,20 +5,24 @@ import { Mail, Lock, ArrowRight, LogIn } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
 import Link from 'next/link';
 import { loginUser } from '@/services/auth.service';
-import { z } from 'zod';
+import { set, z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
 import { cacheUser } from '@/utils/userCache';
+import { formatErrorObject } from '@/utils/formatErrorObject';
 
 const loginSchema = z.object({
   email: z.email({ message: 'Invalid email format' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters long' }),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters long' }),
 });
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<Record<string, string>>({});
 
   const setUser = useAuthStore((state) => state.setUser);
 
@@ -33,32 +37,45 @@ const LoginPage = () => {
     const validation = loginSchema.safeParse(userData);
 
     if (!validation.success) {
-      console.log(z.prettifyError(validation.error));
+      const errObj = formatErrorObject(validation.error);
+      setError(errObj);
       return;
     }
 
-    const response = await loginUser(userData);
-    if (!response.success) {
-      console.error(response.error);
-      return;
+    try {
+      const response = await loginUser(userData);
+      if (!response.success) {
+        throw new Error(
+          response.error?.message || 'An unknown error occurred.'
+        );
+      }
+
+      const currentUser = response.data.user;
+      cacheUser(currentUser);
+      setUser(currentUser);
+
+      if (currentUser.role === 'seller') {
+        navigateTo('/seller/dashboard');
+      } else if (currentUser.role === 'customer') {
+        navigateTo('/customer/dashboard');
+      } else if (currentUser.role === 'admin') {
+        navigateTo('/admin/dashboard');
+      } else {
+        navigateTo('/');
+      }
+
+      toast.success(response.message || 'Login successful');
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Login failed. Please try again.'
+      );
     }
-    const currentUser = response.data.user;
-    setUser(currentUser);
-    cacheUser(currentUser);
-    
-    if (currentUser.role === 'seller') {
-      navigateTo('/seller/dashboard');
-    }
-    if (currentUser.role === 'customer') {
-      navigateTo('/customer/dashboard');
-    }
-    if (currentUser.role === 'admin') {
-      navigateTo('/admin/dashboard');
-    }
-    toast.success(response.message || 'Login successful');
   };
 
   const handleGoogleLogin = async () => {
+    setUser(null);
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login-google`;
   };
 
@@ -77,7 +94,11 @@ const LoginPage = () => {
             name="email"
             placeholder="Email Address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error.email) setError((prev) => ({ ...prev, email: '' }))
+            }}
+            error={error.email}
           />
           <FormInput
             Icon={Lock}
@@ -85,8 +106,12 @@ const LoginPage = () => {
             name="password"
             placeholder="Password"
             value={password}
-            formType='login'
-            onChange={(e) => setPassword(e.target.value)}
+            formType="login"
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (error.password) setError((prev) => ({ ...prev, password: '' }))
+            }}
+            error={error.password}
           />
 
           <div className="flex justify-end mb-6">
