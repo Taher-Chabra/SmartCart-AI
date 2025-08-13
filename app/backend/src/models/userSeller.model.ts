@@ -83,4 +83,17 @@ const userSellerSchema = new mongoose.Schema<SellerModel>(
   { timestamps: true }
 );
 
+userSellerSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    return {
+      ...ret,
+      businessName: ret.businessName || '',
+      businessType: ret.businessType || '',
+      businessEmail: ret.businessEmail || '',
+      businessLogo: ret.businessLogo || '',
+      address: ret.address || '',
+    };
+  }
+});
+
 export const UserSeller = mongoose.model('UserSeller', userSellerSchema);

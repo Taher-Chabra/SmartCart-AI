@@ -30,7 +30,6 @@ const userSchema = new mongoose.Schema<UserModel>(
     },
     username: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
       trim: true,
@@ -47,6 +46,7 @@ const userSchema = new mongoose.Schema<UserModel>(
     password: {
       type: String,
       required: false,
+      select: false,
       minlength: [8, 'Password must be at least 8 characters long'],
     },
     google: {
@@ -67,7 +67,6 @@ const userSchema = new mongoose.Schema<UserModel>(
       enum: ['local', 'google'],
       default: 'local',
       required: true,
-      select: false,
     },
     phone: phoneSchema,
     role: {
@@ -88,6 +87,7 @@ const userSchema = new mongoose.Schema<UserModel>(
     },
     refreshToken: {
       type: String,
+      select: false,
     },
   },
   { timestamps: true }
@@ -95,18 +95,35 @@ const userSchema = new mongoose.Schema<UserModel>(
 
 userSchema.pre('save', async function (next) {
   try {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
       return next();
     }
 
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.hash(this.password!, 10);
 
     next();
   } catch (error) {
-    console.error('Error hashing password:', error);
     next(error as mongoose.CallbackError);
   }
 });
+
+userSchema.pre('save', async function (next) {
+  try {
+    if (!this.username) {
+      this.username = this.fullName
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/^(\w+)\s+(\w+).*$/, '$1_$2');
+    }
+
+    next();
+  } catch (error) {
+    next(error as mongoose.CallbackError);
+  }
+});
+
+
 
 userSchema.methods.comparePassword = async function (
   enteredPassword: string

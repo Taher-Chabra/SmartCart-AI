@@ -45,4 +45,12 @@ const userCustomerSchema = new mongoose.Schema<CustomerModel>(
   { timestamps: true }
 );
 
+userCustomerSchema.virtual('cartTotalQuantity').get(function () {
+  if (!this.cart) return 0;
+  return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+});
+
+userCustomerSchema.set('toJSON', { virtuals: true });
+userCustomerSchema.set('toObject', { virtuals: true });
+
 export const UserCustomer = mongoose.model('UserCustomer', userCustomerSchema);
