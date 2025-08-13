@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { User, UserModel } from '../models/user.model';
 import { ApiError } from '../utils/ApiError';
@@ -7,6 +7,8 @@ import { authResponseData } from '../utils/authTokens';
 import jwt from 'jsonwebtoken';
 import { IJwtPayload } from '@smartcartai/shared/src/interface/user';
 import { getProfileByRole } from '../lib/getProfileByRole';
+import mongoose from 'mongoose';
+import passport from 'passport';
 
 const authSuccessCallback = asyncHandler(
   async (req: Request, res: Response) => {
@@ -17,32 +19,47 @@ const authSuccessCallback = asyncHandler(
       throw new ApiError(401, 'Authentication failed. User not found!');
     }
 
-    const profile = await getProfileByRole(user.role, user._id, 'find');
-
-    if (!profile) {
-      throw new ApiError(400, `Profile not found for role: ${user.role}`);
-    }
-
     const { accessToken, refreshToken, cookieOptions } = await authResponseData(
       user._id
     );
+    res.cookie('accessToken', accessToken, cookieOptions);
+    res.cookie('refreshToken', refreshToken, cookieOptions);
 
-    const fullUserProfile = {
-      ...user.toJSON(),
-      ...profile.toJSON(),
-    };
+    if (user.authType === 'google' && user.google.id && !user.isActive) {
+      return res
+        .status(302)
+        .redirect(`${process.env.CLIENT_URL}/auth/${user._id}/choose-role`);
+    }
+
+    if (user.authType === 'local') {
+      const profile = await getProfileByRole(user.role, user._id, 'find');
+      if (!profile) {
+        throw new ApiError(404, `Profile not found for user: ${user.username}`);
+      }
+
+      const safeUser = user.toObject();
+      delete safeUser.password;
+      delete safeUser.refreshToken;
+
+      const fullUserProfile = {
+        ...safeUser,
+        ...profile.toJSON(),
+      };
+
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            { user: fullUserProfile },
+            'User authenticated successfully'
+          )
+        );
+    }
 
     return res
-      .status(200)
-      .cookie('accessToken', accessToken, cookieOptions)
-      .cookie('refreshToken', refreshToken, cookieOptions)
-      .json(
-        new ApiResponse(
-          200,
-          { user: fullUserProfile },
-          'User logged in successfully'
-        )
-      );
+      .status(302)
+      .redirect(`${process.env.CLIENT_URL}/${user.role}/dashboard`);
   }
 );
 
@@ -63,92 +80,174 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'User with this credentials already exists!');
   }
 
-  const newUser = await User.create({
-    fullName,
-    username: username.toLowerCase(),
-    email,
-    password,
-    role,
-  });
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!newUser) {
-    throw new ApiError(500, 'Failed to create user account.');
-  }
-  
-  const profile = await getProfileByRole(newUser.role, newUser._id, 'create');
+  try {
+    const newUser = new User({
+      fullName,
+      username: username.toLowerCase(),
+      email,
+      password,
+      role,
+    });
+    await newUser.save({ session });
 
-  if (!profile) {
-    throw new ApiError(400, `Unable to create profile`);
-  }
+    if (!newUser) {
+      throw new ApiError(500, 'Failed to create user account.');
+    }
 
-  
-  const fullUserProfile = {
-    ...newUser.toJSON(),
-    ...profile.toJSON(),
-  };
-  
-  const { accessToken, refreshToken, cookieOptions } = await authResponseData(
-    newUser._id
-  );
-
-  return res
-    .status(201)
-    .cookie('accessToken', accessToken, cookieOptions)
-    .cookie('refreshToken', refreshToken, cookieOptions)
-    .json(
-      new ApiResponse(201, { user: fullUserProfile }, 'User registered successfully')
+    const profile = await getProfileByRole(
+      newUser.role,
+      newUser._id,
+      'create',
+      session
     );
+
+    if (!profile) {
+      throw new ApiError(400, `Unable to create profile`);
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const safeUser = newUser.toObject();
+    delete safeUser.password;
+    delete safeUser.refreshToken;
+
+    const fullUserProfile = {
+      ...safeUser,
+      ...profile.toJSON(),
+    };
+
+    const { accessToken, refreshToken, cookieOptions } = await authResponseData(
+      newUser._id
+    );
+
+    return res
+      .status(201)
+      .cookie('accessToken', accessToken, cookieOptions)
+      .cookie('refreshToken', refreshToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          201,
+          { user: fullUserProfile },
+          'User registered successfully'
+        )
+      );
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw new ApiError(500, 'Failed to register user. Please try again later.');
+  }
 });
 
 // Login User
 
-const localUserLogin = authSuccessCallback;
+const localUserLogin = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate(
+    'local',
+    { session: false },
+    (err: any, user: UserModel, info: any) => {
+      if (err) return next(err);
+
+      if (!user) {
+        return res
+          .status(400)
+          .json({ message: info?.message || 'Invalid credentials' });
+      }
+
+      req.user = user;
+      return authSuccessCallback(req, res, next);
+    }
+  )(req, res, next);
+};
 
 const googleUserLogin = authSuccessCallback;
+
+const chooseRole = async (req: Request, res: Response, next: NextFunction) => {
+  const user = req.user as UserModel;
+  const { userId } = req.params;
+
+  if (user._id.toString() !== userId) {
+    throw new ApiError(404, 'User Id mismatch');
+  }
+
+  const role = req.body.role;
+  const allowedRoles = ['customer', 'seller'];
+  if (!allowedRoles.includes(role)) {
+    throw new ApiError(400, 'Invalid role selection');
+  }
+
+  const profile = await getProfileByRole(role, user._id, 'create');
+  if (!profile) {
+    throw new ApiError(400, `Unable to create profile`);
+  }
+
+  user.role = role;
+  user.isActive = true;
+  await user.save();
+
+  const fullUserProfile = {
+    ...user.toJSON(),
+    ...profile.toJSON(),
+  };
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { user: fullUserProfile },
+        'User role updated successfully'
+      )
+    );
+};
 
 // Refresh access token
 
 const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-   const incomingRefreshToken = req.cookies?.refreshToken;
+  const incomingRefreshToken = req.cookies?.refreshToken;
 
-   if (!incomingRefreshToken) {
-      throw new ApiError(401, "Unauthorized access - refresh token is missing");
-   }
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, 'Unauthorized access - refresh token is missing');
+  }
 
-   try {
-      const decodedToken = jwt.verify(
-         incomingRefreshToken,
-         process.env.REFRESH_TOKEN_SECRET as string
-      ) as IJwtPayload;
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET as string
+    ) as IJwtPayload;
 
-      const user = await User.findById(decodedToken._id);
+    const user = await User.findById(decodedToken._id).select('+refreshToken');
 
-      if (!user) {
-         throw new ApiError(401, "Invalid Refresh Token - User not found");
-      }
+    if (!user) {
+      throw new ApiError(401, 'Invalid Refresh Token - User not found');
+    }
 
-      if (user.refreshToken !== incomingRefreshToken) {
-         throw new ApiError(401, "Invalid Refresh Token - Token mismatch");
-      }
+    if (user.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, 'Invalid Refresh Token - Token mismatch');
+    }
 
-      // Generate new access token and refresh token
-      const { accessToken, refreshToken, cookieOptions } = await authResponseData(
-         user._id
+    // Generate new access token and refresh token
+    const { accessToken, refreshToken, cookieOptions } = await authResponseData(
+      user._id
+    );
+
+    return res
+      .status(200)
+      .cookie('refreshToken', refreshToken, cookieOptions)
+      .cookie('accessToken', accessToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken },
+          'Access token refreshed successfully'
+        )
       );
-
-      return res
-         .status(200)
-         .cookie("refreshToken", refreshToken, cookieOptions)
-         .cookie("accessToken", accessToken, cookieOptions)
-         .json(new ApiResponse(
-            200,
-            { accessToken, refreshToken },
-            "Access token refreshed successfully"
-         ));
-
-   } catch (error: any) {
-      throw new ApiError(401, error.message || "Invalid refresh token!");
-   }
+  } catch (error: any) {
+    throw new ApiError(401, error.message || 'Invalid refresh token!');
+  }
 });
 
 const logoutUser = asyncHandler(async (req: Request, res: Response) => {
@@ -156,8 +255,8 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 
   await User.findByIdAndUpdate(
     user._id,
-    { 
-      $unset: { refreshToken: 1 }
+    {
+      $unset: { refreshToken: 1 },
     },
     { new: true }
   );
@@ -165,8 +264,8 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
-  }
+    sameSite: 'lax' as const,
+  };
 
   return res
     .status(200)
@@ -175,4 +274,11 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, {}, 'User logged out successfully'));
 });
 
-export { registerUser, localUserLogin, googleUserLogin, refreshAccessToken, logoutUser };
+export {
+  registerUser,
+  localUserLogin,
+  googleUserLogin,
+  chooseRole,
+  refreshAccessToken,
+  logoutUser,
+};

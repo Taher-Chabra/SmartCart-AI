@@ -12,7 +12,10 @@ passport.use(new LocalStrategy(
    },
    async (email, password, done) => {
       try {
-         const user = await User.findOne({ email });
+         const user = await User
+         .findOne({ email })
+         .select('+password');
+
          if (!user) {
             return done(null, false, { message: 'Incorrect email or password.' });
          }
@@ -20,6 +23,7 @@ passport.use(new LocalStrategy(
          if (!isMatch) {
             return done(null, false, { message: 'Incorrect password.' });
          }
+
          return done(null, user);
       } catch (error) {
          return done(error);
@@ -50,9 +54,14 @@ passport.use(new GoogleStrategy(
                google: {
                   id: profile.id
                },
-               authType: 'google'
+               authType: 'google',
+               isActive: false
             });
-            return done(null, newUser);
+
+            const safeUser = newUser.toObject();
+            delete safeUser.password;
+            delete safeUser.refreshToken;
+            return done(null, safeUser);
          }
       } catch (error) {
          return done(error);
