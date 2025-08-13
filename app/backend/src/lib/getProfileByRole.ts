@@ -1,40 +1,48 @@
-import { Model, Types } from 'mongoose';
+import { Document, mongo, Types } from 'mongoose';
 import { CustomerModel, UserCustomer } from '../models/userCustomer.model';
 import { SellerModel, UserSeller } from '../models/userSeller.model';
 import { AdminModel, UserAdmin } from '../models/userAdmin.model';
 
 type UserModels = CustomerModel | SellerModel | AdminModel;
 
+
 export async function getProfileByRole(
   role: string,
   userId: Types.ObjectId | null,
-  type?: 'create' | 'find'
+  type?: 'create' | 'find',
+  session?: mongo.ClientSession
 ): Promise<UserModels | null> {
-  let roleProfile: UserModels | null = null;
-  let profileModel: Model<any> | null = null;
+  if (!role || !userId) return null;
 
-  switch (role) {
-    case 'customer':
-      profileModel = UserCustomer;
-      break;
-    case 'seller':
-      profileModel = UserSeller;
-      break;
-    case 'admin':
-      profileModel = UserAdmin;
-      break;
+  const createAndReturn = async (Model: any, exclude: string) => {
+    if (type === 'create') {
+      // Create profile and immediately return it
+      return await Model.create([{ userId }], { session })
+        .then((docs: Document[]) => Model
+          .findById(docs[0]._id)
+          .select(exclude)
+          .session(session)
+        );
+    } else {
+      // Return existing Profile if type is 'find'
+      return await Model.findOne({ userId })
+        .select(exclude)
+        .session(session);
+    }
+  };
+
+  if (role === 'customer') {
+    return await createAndReturn(UserCustomer, '-__v -orderHistory -cart -wishlist');
   }
-  if (!profileModel) {
-    return null;
+  if (role === 'seller') {
+    return await createAndReturn(
+      UserSeller,
+      '-__v -products -ratings -legalDocuments -paymentHistory -customerOrders'
+    );
+  }
+  if (role === 'admin') {
+    return await createAndReturn(UserAdmin, '-__v -lastLogin -permissions');
   }
 
-  if (type === 'find' && userId) {
-    roleProfile = await profileModel.findOne({ userId });
-  }
-  if (type === 'create' && userId) {
-    roleProfile = await profileModel.create({ userId });
-  }
-
-  if (roleProfile) return roleProfile;
   return null;
 }
