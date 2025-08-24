@@ -2,6 +2,26 @@ import { api } from '@/lib/api';
 import { AxiosError } from 'axios';
 import { IUserSignup } from '@smartcartai/shared/src/interface/user';
 
+// Send Verification code to email
+const sendCodeToEmail = async (email: string) => {
+  try {
+    const response = await api.post('/auth/send-verification-code', { email });
+    return response.data;
+  } catch (error: AxiosError | any) {
+    throw new Error(error.response?.data?.message || 'Error sending verification code');
+  }
+};
+
+// Verify code
+const verifyCode = async (email: string, code: string) => {
+  try {
+    const response = await api.post('/auth/verify-code', { email, code });
+    return response.data;
+  } catch (error: AxiosError | any) {
+    throw new Error(error.response?.data?.message || 'Error verifying code');
+  }
+};
+
 // User signup
 const signupUser = async (data: IUserSignup) => {
   try {
@@ -42,4 +62,4 @@ const logoutUser = async () => {
   }
 };
 
-export { signupUser, loginUser, chooseRoleAfterGoogleLogin, logoutUser };
+export { sendCodeToEmail, verifyCode, signupUser, loginUser, chooseRoleAfterGoogleLogin, logoutUser };

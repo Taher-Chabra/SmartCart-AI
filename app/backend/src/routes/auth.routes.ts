@@ -1,16 +1,22 @@
 import express from 'express';
 import passport from 'passport';
 import {
+  sendCodeToEmail,
   registerUser,
   localUserLogin,
   logoutUser,
   googleUserLogin,
   chooseRole,
   refreshAccessToken,
+  verifyCode,
 } from '../controllers/auth.controller';
 import { verifyJWTAuth } from '../middlewares/auth.middleware';
 
 const router: express.Router = express.Router();
+
+router.route('/send-verification-code').post(sendCodeToEmail);
+
+router.route('/verify-code').post(verifyCode);
 
 router.route('/register').post(registerUser);
 

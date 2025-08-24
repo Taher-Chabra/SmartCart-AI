@@ -55,7 +55,8 @@ passport.use(new GoogleStrategy(
                   id: profile.id
                },
                authType: 'google',
-               isActive: false
+               isActive: false,
+               isEmailVerified: true
             });
 
             const safeUser = newUser.toObject();

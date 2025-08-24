@@ -12,12 +12,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
 import { cacheUser } from '@/utils/userCache';
 import { formatErrorObject } from '@/utils/formatErrorObject';
+import { IUserSignup } from '@smartcartai/shared/src/interface/user';
 
-interface SignupFormData {
-  fullName: string;
-  username: string;
-  email: string;
-  password: string;
+interface SignupFormData extends IUserSignup {
   confirmPassword: string;
   role: 'customer' | 'seller';
 }
@@ -30,7 +27,7 @@ function fullNameToUsername(fullName: string): string {
     .replace(/^(\w+)\s+(\w+).*$/, '$1_$2');
 }
 
-export const signupSchema: z.ZodType<SignupFormData> = z
+const signupSchema: z.ZodType<SignupFormData> = z
   .object({
     fullName: z.string().min(5, 'Full name must be at least 5 characters long'),
     username: z.string().min(3, 'Username must be at least 3 characters long'),

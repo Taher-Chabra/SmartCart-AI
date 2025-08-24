@@ -9,6 +9,9 @@ import { IJwtPayload } from '@smartcartai/shared/src/interface/user';
 import { getProfileByRole } from '../lib/getProfileByRole';
 import mongoose from 'mongoose';
 import passport from 'passport';
+import { generateOTPAndSave, verifyOTP } from '../utils/otp';
+import { sendVerificationEmail } from '../lib/emailVerification';
+import { get } from 'http';
 
 const authSuccessCallback = asyncHandler(
   async (req: Request, res: Response) => {
@@ -63,6 +66,57 @@ const authSuccessCallback = asyncHandler(
   }
 );
 
+// Send verification code to email for email verification
+
+const sendCodeToEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, 'Email is required');
+  }
+
+  const getCode = await generateOTPAndSave(email);
+  if (!getCode.success) {
+    throw new ApiError(500, getCode.reason || 'Wait for 2 minutes before requesting a new code');
+  }
+
+  const response = await sendVerificationEmail(email, getCode.token as string);
+  if (!response.success) {
+    throw new ApiError(500, response.error || 'Failed to send verification email');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(
+      200,
+      {},
+      'Verification code sent successfully.'
+    ))
+});
+
+// verify code for completing email verification
+
+const verifyCode = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    throw new ApiError(400, 'Email and code are required');
+  }
+  
+  const isCodeValid = await verifyOTP(email, code);
+  if (!isCodeValid.success) {
+    throw new ApiError(400, isCodeValid.reason || 'Invalid verification code');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(
+      200,
+      {},
+      'Email verified successfully'
+    ));
+});
+
 // Register a new User
 
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
@@ -90,6 +144,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       email,
       password,
       role,
+      isEmailVerified: true
     });
     await newUser.save({ session });
 
@@ -275,10 +330,12 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export {
+  sendCodeToEmail,
+  verifyCode,
   registerUser,
   localUserLogin,
   googleUserLogin,
   chooseRole,
   refreshAccessToken,
-  logoutUser,
+  logoutUser
 };
