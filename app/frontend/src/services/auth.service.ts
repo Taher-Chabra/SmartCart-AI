@@ -8,7 +8,9 @@ const sendCodeToEmail = async (email: string) => {
     const response = await api.post('/auth/send-verification-code', { email });
     return response.data;
   } catch (error: AxiosError | any) {
-    throw new Error(error.response?.data?.message || 'Error sending verification code');
+    throw new Error(
+      error.response?.data?.message || 'Error sending verification code'
+    );
   }
 };
 
@@ -19,6 +21,18 @@ const verifyCode = async (email: string, code: string) => {
     return response.data;
   } catch (error: AxiosError | any) {
     throw new Error(error.response?.data?.message || 'Error verifying code');
+  }
+};
+
+// Complete profile creation
+const completeProfileCreation = async () => {
+  try {
+    const response = await api.post('/auth/complete-profile');
+    return response.data;
+  } catch (error: AxiosError | any) {
+    throw new Error(
+      error.response?.data?.message || 'Error completing profile creation'
+    );
   }
 };
 
@@ -48,7 +62,9 @@ const chooseRoleAfterGoogleLogin = async (userId: string, role: string) => {
     const response = await api.post(`/auth/${userId}/choose-role`, { role });
     return response.data;
   } catch (error: AxiosError | any) {
-    throw new Error(error.response?.data?.message || 'Error during role selection');
+    throw new Error(
+      error.response?.data?.message || 'Error during role selection'
+    );
   }
 };
 
@@ -62,4 +78,12 @@ const logoutUser = async () => {
   }
 };
 
-export { sendCodeToEmail, verifyCode, signupUser, loginUser, chooseRoleAfterGoogleLogin, logoutUser };
+export {
+  sendCodeToEmail,
+  verifyCode,
+  signupUser,
+  loginUser,
+  chooseRoleAfterGoogleLogin,
+  logoutUser,
+  completeProfileCreation,
+};

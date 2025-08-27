@@ -10,9 +10,11 @@ export const requireRole = (role: string) => {
       throw new ApiError(401, 'Unauthorized Request!');
     }
 
-    const userRole = user.role;
+    if (!user.isEmailVerified) {
+      throw new ApiError(403, 'Email not verified');
+    }
 
-    if (userRole !== role) {
+    if (user.role !== role) {
       throw new ApiError(
         403,
         `Access denied. You need to be a ${role} to access this resource.`

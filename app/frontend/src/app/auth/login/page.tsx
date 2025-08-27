@@ -53,6 +53,7 @@ const LoginPage = () => {
       const currentUser = response.data.user;
       cacheUser(currentUser);
       setUser(currentUser);
+      toast.success(response.message || 'Login successful');
 
       if (currentUser.role === 'seller') {
         navigateTo('/seller/dashboard');
@@ -64,7 +65,6 @@ const LoginPage = () => {
         navigateTo('/');
       }
 
-      toast.success(response.message || 'Login successful');
     } catch (error) {
       toast.error(
         error instanceof Error

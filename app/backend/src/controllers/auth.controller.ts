@@ -66,6 +66,34 @@ const authSuccessCallback = asyncHandler(
   }
 );
 
+const generateCodeAndSendToEmail = async (email: string) => {
+  try {
+    const getCode = await generateOTPAndSave(email);
+    if (!getCode.success) {
+      throw new ApiError(
+        500,
+        getCode.reason || 'Wait for 2 minutes before requesting a new code'
+      );
+    }
+
+    const response = await sendVerificationEmail(
+      email,
+      getCode.token as string
+    );
+    if (!response.success) {
+      throw new ApiError(
+        500,
+        response.error || 'Failed to send verification email'
+      );
+    }
+  } catch (error: any) {
+    throw new ApiError(
+      500,
+      error.message || 'Failed to generate and send verification code'
+    );
+  }
+};
+
 // Send verification code to email for email verification
 
 const sendCodeToEmail = asyncHandler(async (req: Request, res: Response) => {
@@ -75,23 +103,11 @@ const sendCodeToEmail = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'Email is required');
   }
 
-  const getCode = await generateOTPAndSave(email);
-  if (!getCode.success) {
-    throw new ApiError(500, getCode.reason || 'Wait for 2 minutes before requesting a new code');
-  }
-
-  const response = await sendVerificationEmail(email, getCode.token as string);
-  if (!response.success) {
-    throw new ApiError(500, response.error || 'Failed to send verification email');
-  }
+  await generateCodeAndSendToEmail(email);
 
   return res
     .status(200)
-    .json(new ApiResponse(
-      200,
-      {},
-      'Verification code sent successfully.'
-    ))
+    .json(new ApiResponse(200, {}, 'Verification code sent successfully.'));
 });
 
 // verify code for completing email verification
@@ -102,7 +118,7 @@ const verifyCode = asyncHandler(async (req: Request, res: Response) => {
   if (!email || !code) {
     throw new ApiError(400, 'Email and code are required');
   }
-  
+
   const isCodeValid = await verifyOTP(email, code);
   if (!isCodeValid.success) {
     throw new ApiError(400, isCodeValid.reason || 'Invalid verification code');
@@ -110,11 +126,7 @@ const verifyCode = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(
-      200,
-      {},
-      'Email verified successfully'
-    ));
+    .json(new ApiResponse(200, {}, 'Email verified successfully'));
 });
 
 // Register a new User
@@ -126,75 +138,80 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'All fields are required!');
   }
 
-  const existingUser = await User.findOne({
-    $or: [{ username }, { email }],
-  });
-
-  if (existingUser) {
-    throw new ApiError(400, 'User with this credentials already exists!');
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (existingUser) {
+      throw new ApiError(400, 'User with this credentials already exists!');
+    }
+
     const newUser = new User({
       fullName,
       username: username.toLowerCase(),
       email,
       password,
       role,
-      isEmailVerified: true
     });
-    await newUser.save({ session });
+    await newUser.save();
 
     if (!newUser) {
       throw new ApiError(500, 'Failed to create user account.');
     }
 
-    const profile = await getProfileByRole(
-      newUser.role,
-      newUser._id,
-      'create',
-      session
-    );
-
-    if (!profile) {
-      throw new ApiError(400, `Unable to create profile`);
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    const safeUser = newUser.toObject();
-    delete safeUser.password;
-    delete safeUser.refreshToken;
-
-    const fullUserProfile = {
-      ...safeUser,
-      ...profile.toJSON(),
-    };
-
     const { accessToken, refreshToken, cookieOptions } = await authResponseData(
       newUser._id
     );
+
+    await generateCodeAndSendToEmail(email);
 
     return res
       .status(201)
       .cookie('accessToken', accessToken, cookieOptions)
       .cookie('refreshToken', refreshToken, cookieOptions)
-      .json(
-        new ApiResponse(
-          201,
-          { user: fullUserProfile },
-          'User registered successfully'
-        )
-      );
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw new ApiError(500, 'Failed to register user. Please try again later.');
+      .json(new ApiResponse(201, {}, 'User registered successfully'));
+  } catch (error: any) {
+    throw new ApiError(
+      500,
+      error.message || 'Failed to register user. Please try again later.'
+    );
   }
+});
+
+const completeProfileCreation = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user as UserModel;
+
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  if (user.isEmailVerified) {
+    throw new ApiError(400, 'Profile is already completed.');
+  }
+
+  user.isEmailVerified = true;
+  await user.save();
+
+  const profile = await getProfileByRole(user.role, user._id, 'create');
+  if (!profile) {
+    throw new ApiError(400, 'Failed to create user profile.');
+  }
+
+  const fullUserProfile = {
+    ...user.toJSON(),
+    ...profile.toJSON(),
+  };
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { user: fullUserProfile },
+        'User profile created successfully'
+      )
+    );
 });
 
 // Login User
@@ -337,5 +354,6 @@ export {
   googleUserLogin,
   chooseRole,
   refreshAccessToken,
-  logoutUser
+  logoutUser,
+  completeProfileCreation,
 };

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import redis from '../config/redis';
+import { redis } from '../config/redis';
 
 const hashOTP = (otp: string) => {
   const secret = process.env.OTP_SECRET_KEY as string;

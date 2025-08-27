@@ -8,9 +8,7 @@ import Link from 'next/link';
 import { signupUser } from '@/services/auth.service';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/store/auth.store';
 import { navigateTo } from '@/lib/router';
-import { cacheUser } from '@/utils/userCache';
 import { formatErrorObject } from '@/utils/formatErrorObject';
 import { IUserSignup } from '@smartcartai/shared/src/interface/user';
 
@@ -54,8 +52,6 @@ const RegisterPage = () => {
   const [isSeller, setIsSeller] = useState(false);
   const [error, setError] = useState<Record<string, string>>({});
 
-  const setUser = useAuthStore((state) => state.setUser);
-
   const handleUserSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -80,20 +76,8 @@ const RegisterPage = () => {
       if (!response.success) {
         throw new Error(response.error.message || 'An unknown error occurred.');
       }
-
-      const currentUser = response.data.user;
-      setUser(currentUser);
-      cacheUser(currentUser);
-      if (currentUser.role === 'seller') {
-        navigateTo('/seller/dashboard');
-      }
-      if (currentUser.role === 'customer') {
-        navigateTo('/customer/dashboard');
-      }
-      if (currentUser.role === 'admin') {
-        navigateTo('/admin/dashboard');
-      }
-      toast.success(response.message || 'Account created successfully');
+      sessionStorage.setItem('email', email);
+      navigateTo('/auth/register/verify-email');
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Failed to create account'
