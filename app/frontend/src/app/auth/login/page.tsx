@@ -5,12 +5,13 @@ import { Mail, Lock, ArrowRight, LogIn } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
 import Link from 'next/link';
 import { loginUser } from '@/services/auth.service';
-import { set, z } from 'zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
-import { navigateTo } from '@/lib/router';
-import { cacheUser } from '@/utils/userCache';
+import { navigateTo } from '@/utils/router';
 import { formatErrorObject } from '@/utils/formatErrorObject';
+import setAndNavigateUser from '@/lib/auth/setAndNavigateUser';
+import { useLoader } from '@/context/LoaderContext';
 
 const loginSchema = z.object({
   email: z.email({ message: 'Invalid email format' }),
@@ -24,10 +25,12 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<Record<string, string>>({});
 
+  const {loading, show, hide} = useLoader();
   const setUser = useAuthStore((state) => state.setUser);
 
   const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    show();
 
     const userData = {
       email,
@@ -37,6 +40,7 @@ const LoginPage = () => {
     const validation = loginSchema.safeParse(userData);
 
     if (!validation.success) {
+      hide();
       const errObj = formatErrorObject(validation.error);
       setError(errObj);
       return;
@@ -49,23 +53,18 @@ const LoginPage = () => {
           response.error?.message || 'An unknown error occurred.'
         );
       }
-
       const currentUser = response.data.user;
-      cacheUser(currentUser);
-      setUser(currentUser);
-      toast.success(response.message || 'Login successful');
-
-      if (currentUser.role === 'seller') {
-        navigateTo('/seller/dashboard');
-      } else if (currentUser.role === 'customer') {
-        navigateTo('/customer/dashboard');
-      } else if (currentUser.role === 'admin') {
-        navigateTo('/admin/dashboard');
-      } else {
-        navigateTo('/');
+      
+      if (!currentUser.isEmailVerified) {
+        sessionStorage.setItem('email', email);
+        toast.warning(response.message || 'Please verify your email address');
+        return navigateTo('/auth/register/verify-email');
       }
-
+      
+      toast.success(response.message || 'Login successful');
+      setAndNavigateUser(currentUser);
     } catch (error) {
+      hide();
       toast.error(
         error instanceof Error
           ? error.message
@@ -78,6 +77,10 @@ const LoginPage = () => {
     setUser(null);
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login-google`;
   };
+
+  useEffect(() => {
+    if (loading) hide();
+  },[]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -95,8 +98,8 @@ const LoginPage = () => {
             placeholder="Email Address"
             value={email}
             onChange={(e) => {
-              setEmail(e.target.value)
-              if (error.email) setError((prev) => ({ ...prev, email: '' }))
+              setEmail(e.target.value);
+              if (error.email) setError((prev) => ({ ...prev, email: '' }));
             }}
             error={error.email}
           />
@@ -108,8 +111,9 @@ const LoginPage = () => {
             value={password}
             formType="login"
             onChange={(e) => {
-              setPassword(e.target.value)
-              if (error.password) setError((prev) => ({ ...prev, password: '' }))
+              setPassword(e.target.value);
+              if (error.password)
+                setError((prev) => ({ ...prev, password: '' }));
             }}
             error={error.password}
           />

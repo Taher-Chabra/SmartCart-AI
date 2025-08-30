@@ -7,11 +7,9 @@ import { authResponseData } from '../utils/authTokens';
 import jwt from 'jsonwebtoken';
 import { IJwtPayload } from '@smartcartai/shared/src/interface/user';
 import { getProfileByRole } from '../lib/getProfileByRole';
-import mongoose from 'mongoose';
 import passport from 'passport';
 import { generateOTPAndSave, verifyOTP } from '../utils/otp';
 import { sendVerificationEmail } from '../lib/emailVerification';
-import { get } from 'http';
 
 const authSuccessCallback = asyncHandler(
   async (req: Request, res: Response) => {
@@ -31,10 +29,17 @@ const authSuccessCallback = asyncHandler(
     if (user.authType === 'google' && user.google.id && !user.isActive) {
       return res
         .status(302)
-        .redirect(`${process.env.CLIENT_URL}/auth/${user._id}/choose-role`);
+        .redirect(`${process.env.CLIENT_URL}/auth/google-login/${user._id}/choose-role`);
     }
 
     if (user.authType === 'local') {
+      if (!user.isEmailVerified) {
+        await generateCodeAndSendToEmail(user.email);
+        return res
+          .status(200)
+          .json(new ApiResponse(200, { user }, 'Email not verified'));
+      }
+
       const profile = await getProfileByRole(user.role, user._id, 'find');
       if (!profile) {
         throw new ApiError(404, `Profile not found for user: ${user.username}`);

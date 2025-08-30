@@ -10,9 +10,8 @@ import {
   sendCodeToEmail,
   completeProfileCreation,
 } from '@/services/auth.service';
-import { cacheUser } from '@/utils/userCache';
-import { useAuthStore } from '@/store/auth.store';
-import { navigateTo } from '@/lib/router';
+import setAndNavigateUser from '@/lib/auth/setAndNavigateUser';
+import { useLoader } from '@/context/LoaderContext';
 
 const VerifyEmailPage = () => {
   const [otp, setOtp] = useState('');
@@ -21,8 +20,10 @@ const VerifyEmailPage = () => {
   const [countdown, setCountdown] = useState(120);
   const [verified, setVerified] = useState(false);
 
+  const { loading, show, hide } = useLoader();
+
   const email = sessionStorage.getItem('email') || '';
-  const setUser = useAuthStore((state) => state.setUser);
+
   // Timer
   useEffect(() => {
     if (countdown === 0) return;
@@ -34,8 +35,13 @@ const VerifyEmailPage = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    if (loading) hide();
+  }, []);
+
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    show();
     setError({});
     setIsLoading(true);
 
@@ -48,6 +54,7 @@ const VerifyEmailPage = () => {
       .safeParse(otp);
 
     if (!validOtp.success) {
+      hide();
       setError((prev) => ({
         ...prev,
         emailOtp: validOtp.error.message,
@@ -74,12 +81,14 @@ const VerifyEmailPage = () => {
         emailOtp: error instanceof Error ? error.message : 'Invalid Code',
       }));
     } finally {
+      hide();
       setIsLoading(false);
     }
   };
 
   const sendOtpCode = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    show();
     if (countdown > 0) return;
     setIsLoading(true);
 
@@ -93,6 +102,7 @@ const VerifyEmailPage = () => {
         error instanceof Error ? error.message : 'Failed to verify email'
       );
     } finally {
+      hide();
       setIsLoading(false);
     }
 
@@ -102,6 +112,7 @@ const VerifyEmailPage = () => {
   };
 
   const completeRegistration = async () => {
+    show();
     sessionStorage.removeItem('email');
     setIsLoading(true);
 
@@ -111,20 +122,10 @@ const VerifyEmailPage = () => {
         throw new Error(response.error || 'Failed to complete registration');
       }
       const currentUser = response.data.user;
-      cacheUser(currentUser);
-      setUser(currentUser);
       toast.success('Registration completed successfully');
-
-      if (currentUser.role === 'seller') {
-        navigateTo('/seller/dashboard');
-      } else if (currentUser.role === 'customer') {
-        navigateTo('/customer/dashboard');
-      } else if (currentUser.role === 'admin') {
-        navigateTo('/admin/dashboard');
-      } else {
-        navigateTo('/');
-      }
+      setAndNavigateUser(currentUser);
     } catch (error) {
+      hide();
       toast.error(
         error instanceof Error
           ? error.message

@@ -59,7 +59,7 @@ const loginUser = async (data: { email: string; password: string }) => {
 // choose role after google login
 const chooseRoleAfterGoogleLogin = async (userId: string, role: string) => {
   try {
-    const response = await api.post(`/auth/${userId}/choose-role`, { role });
+    const response = await api.post(`/auth/google-login/${userId}/choose-role`, { role });
     return response.data;
   } catch (error: AxiosError | any) {
     throw new Error(

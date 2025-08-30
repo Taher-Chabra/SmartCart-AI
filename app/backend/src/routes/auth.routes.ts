@@ -36,7 +36,7 @@ router.route('/verify-code').post(verifyJWTAuth, verifyCode);
 
 router.route('/complete-profile').post(verifyJWTAuth, completeProfileCreation);
 
-router.route('/:userId/choose-role').post(verifyJWTAuth, chooseRole);
+router.route('/google-login/:userId/choose-role').post(verifyJWTAuth, chooseRole);
 
 router.route('/refresh-token').post(verifyJWTAuth, refreshAccessToken);
 

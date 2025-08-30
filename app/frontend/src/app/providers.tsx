@@ -1,5 +1,6 @@
 'use client';
 
+import { LoaderContextProvider } from '@/provider/LoaderContextProvider';
 import RehydrateUserProvider from '@/provider/RehydrateUserProvider';
 import RouterProvider from '@/provider/RouterProvider';
 import ToastProvider from '@/provider/ToastProvider';
@@ -9,7 +10,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <RouterProvider />
       <RehydrateUserProvider />
-      {children}
+      <LoaderContextProvider>
+        {children}
+      </LoaderContextProvider>
     </ToastProvider>
   );
 }

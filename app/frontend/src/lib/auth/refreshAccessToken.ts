@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { navigateTo } from '@/lib/router';
+import { navigateTo } from '@/utils/router';
 import { api } from '../api';
 
 let isRefreshing = false;

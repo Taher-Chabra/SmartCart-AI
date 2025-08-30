@@ -8,9 +8,10 @@ import Link from 'next/link';
 import { signupUser } from '@/services/auth.service';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { navigateTo } from '@/lib/router';
+import { navigateTo } from '@/utils/router';
 import { formatErrorObject } from '@/utils/formatErrorObject';
 import { IUserSignup } from '@smartcartai/shared/src/interface/user';
+import { useLoader } from '@/context/LoaderContext';
 
 interface SignupFormData extends IUserSignup {
   confirmPassword: string;
@@ -52,8 +53,11 @@ const RegisterPage = () => {
   const [isSeller, setIsSeller] = useState(false);
   const [error, setError] = useState<Record<string, string>>({});
 
+  const { loading, show, hide } = useLoader();
+
   const handleUserSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    show();
 
     const userData = {
       fullName,
@@ -66,6 +70,7 @@ const RegisterPage = () => {
 
     const validation = signupSchema.safeParse(userData);
     if (!validation.success) {
+      hide();
       const errObj = formatErrorObject(validation.error);
       setError(errObj);
       return;
@@ -94,6 +99,10 @@ const RegisterPage = () => {
         confirmPassword !== password ? 'Passwords must match' : '',
     }));
   }, [password, confirmPassword]);
+
+  useEffect(() => {
+    if (loading) hide();
+  }, []);
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center bg-gray-800/40 backdrop-blur-sm border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
