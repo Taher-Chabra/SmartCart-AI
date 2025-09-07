@@ -56,7 +56,7 @@ In today's rapidly evolving digital marketplace, traditional e-commerce platform
 - **Next.js 14** - React framework with App Router
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first CSS framework
-- **Radix UI** - Accessible component primitives
+- **ShadCN UI** - Accessible component primitives
 - **Zustand** - Lightweight state management
 - **Lucide React** - Beautiful icons
 
@@ -154,45 +154,7 @@ smartcart-ai/
 
 > **⚠️ Project Status: In Active Development**
 
-SmartCart AI is currently under active development. While core functionalities are implemented, we're continuously adding new features and improvements. The following features are available:
-
-✅ **Completed**
-
-- User authentication and role-based access
-- Product catalog management
-- Shopping cart and wishlist functionality
-- Order processing and tracking
-- Payment integration
-- Review and rating system
-- Responsive UI with theme support
-
-🚧 **In Progress**
-
-- AI-powered recommendation engine
-- Advanced analytics dashboard
-- Enhanced search functionality
-- Mobile application
-- Performance optimizations
-
-📋 **Planned**
-
-- Machine learning integration
-- Real-time notifications
-- Multi-language support
-- Advanced reporting tools
-- Third-party integrations
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+SmartCart AI is currently under active development.
 
 ## 📄 License
 
@@ -203,15 +165,7 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Taher Chabra**
 
 - GitHub: [@Taher-Chabra](https://github.com/Taher-Chabra)
-- LinkedIn: [Your LinkedIn Profile](https://linkedin.com/in/your-profile)
-
-## 🙏 Acknowledgments
-
-- Thanks to all the open-source libraries that made this project possible
-- Special thanks to the React and Node.js communities
-- Inspiration from modern e-commerce platforms and AI innovations
-
----
+- LinkedIn: [Your LinkedIn Profile](https://linkedin.com/in/taher-chabra)
 
 <div align="center">
   <p>Built with ❤️ and ☕ by Taher Chabra</p>
